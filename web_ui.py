@@ -1,0 +1,965 @@
+#!/usr/bin/env python3
+"""
+Web-based UI for CMP Mapper using Flask.
+"""
+
+import os
+import sys
+import json
+import tempfile
+from datetime import datetime
+from flask import Flask, render_template, request, jsonify, send_file
+import threading
+import webbrowser
+
+# Add src to path
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+
+# Import version info
+from version import get_version_info
+
+from src.extractors import BannerExtractor
+from src.generators import RuleGenerator
+from src.detectors import BannerDetector
+from src.collectors import WebScraper
+from src.models import PageData, BannerInfo, ConsentRule
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'cmp_mapper_secret_key'
+
+# Global variables for storing results
+current_results = {
+    'page_data': None,
+    'banner_info': None,
+    'rule': None,
+    'test_results': None
+}
+
+@app.route('/')
+def index():
+    """Main page."""
+    version_info = get_version_info()
+    return render_template('index.html', version_info=version_info)
+
+@app.route('/api/version')
+def get_version():
+    """Get version information."""
+    return jsonify(get_version_info())
+
+@app.route('/api/analyze', methods=['POST'])
+def analyze_url():
+    """Analyze a URL for consent banners."""
+    try:
+        data = request.get_json()
+        url = data.get('url', '').strip()
+        
+        if not url:
+            return jsonify({'error': 'URL is required'}), 400
+        
+        # Add https if no protocol specified
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+        
+        # Collect page data
+        with WebScraper(headless=True, timeout=30) as scraper:
+            page_data = scraper.collect_page(url)
+        
+        if not page_data or not page_data.html_content:
+            return jsonify({'error': 'Failed to collect page data'}), 500
+        
+        # Detect banner
+        detector = BannerDetector()
+        banner_info = detector.detect_banner(page_data)
+        
+        # Generate rule if banner found
+        rule = None
+        if banner_info:
+            generator = RuleGenerator()
+            rule = generator.generate_rule(banner_info)
+        
+        # Store results
+        current_results.update({
+            'page_data': {
+                'url': page_data.url,
+                'html_size': len(page_data.html_content),
+                'title': page_data.metadata.get('page_title', 'Unknown'),
+                'collected_at': page_data.collected_at
+            },
+            'banner_info': {
+                'site': banner_info.site if banner_info else None,
+                'banner_type': banner_info.banner_type.value if banner_info else None,
+                'confidence': banner_info.detection_confidence if banner_info else 0,
+                'buttons': [
+                    {
+                        'type': button.button_type.value,
+                        'text': button.text,
+                        'selector': button.selector
+                    } for button in banner_info.buttons
+                ] if banner_info else [],
+                'container_selector': banner_info.container_selector if banner_info else None,
+                'overlay_selectors': banner_info.overlay_selectors if banner_info else []
+            } if banner_info else None,
+            'rule': {
+                'site': rule.site if rule else None,
+                'selectors': rule.selectors if rule else {},
+                'actions': rule.actions if rule else [],
+                'metadata': rule.metadata if rule else {}
+            } if rule else None
+        })
+        
+        return jsonify({
+            'success': True,
+            'page_data': current_results['page_data'],
+            'banner_info': current_results['banner_info'],
+            'rule': current_results['rule']
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/analyze-html', methods=['POST'])
+def analyze_html():
+    """Analyze HTML content for consent banners."""
+    try:
+        data = request.get_json()
+        html_content = data.get('html', '').strip()
+        site_url = data.get('url', 'custom-site.com').strip()
+        
+        if not html_content:
+            return jsonify({'error': 'HTML content is required'}), 400
+        
+        # Detect banner from HTML
+        detector = BannerDetector()
+        
+        # Create a mock PageData object
+        page_data = PageData(
+            url=site_url,
+            html_content=html_content,
+            collected_at=datetime.now().isoformat()
+        )
+        
+        banner_info = detector.detect_banner(page_data)
+        
+        # Generate rule if banner found
+        rule = None
+        if banner_info:
+            generator = RuleGenerator()
+            rule = generator.generate_rule(banner_info)
+        
+        # Store results
+        current_results.update({
+            'page_data': {
+                'url': site_url,
+                'html_size': len(html_content),
+                'title': 'Custom HTML Analysis',
+                'collected_at': datetime.now().isoformat()
+            },
+            'banner_info': {
+                'site': banner_info.site if banner_info else None,
+                'banner_type': banner_info.banner_type.value if banner_info else None,
+                'confidence': banner_info.detection_confidence if banner_info else 0,
+                'buttons': [
+                    {
+                        'type': button.button_type.value,
+                        'text': button.text,
+                        'selector': button.selector
+                    } for button in banner_info.buttons
+                ] if banner_info else [],
+                'container_selector': banner_info.container_selector if banner_info else None,
+                'overlay_selectors': banner_info.overlay_selectors if banner_info else []
+            } if banner_info else None,
+            'rule': {
+                'site': rule.site if rule else None,
+                'selectors': rule.selectors if rule else {},
+                'actions': rule.actions if rule else [],
+                'metadata': rule.metadata if rule else {}
+            } if rule else None
+        })
+        
+        return jsonify({
+            'success': True,
+            'page_data': current_results['page_data'],
+            'banner_info': current_results['banner_info'],
+            'rule': current_results['rule']
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/download-rule', methods=['GET'])
+def download_rule():
+    """Download the generated rule as JSON."""
+    try:
+        if not current_results.get('rule'):
+            return jsonify({'error': 'No rule available'}), 400
+        
+        # Create temporary file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            json.dump(current_results['rule'], f, indent=2)
+            temp_file = f.name
+        
+        return send_file(temp_file, as_attachment=True, 
+                        download_name=f"consent_rule_{current_results['rule']['site']}.json")
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/results', methods=['GET'])
+def get_results():
+    """Get current analysis results."""
+    return jsonify(current_results)
+
+def create_templates():
+    """Create HTML templates."""
+    templates_dir = os.path.join(os.path.dirname(__file__), 'templates')
+    os.makedirs(templates_dir, exist_ok=True)
+    
+    # Create index.html
+    index_html = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMP Mapper - Cookie Consent Banner Detector</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .main-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .card-header h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .card-content {
+            padding: 40px;
+        }
+        
+        .input-group {
+            margin-bottom: 30px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .input-group input:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .input-group textarea {
+            height: 200px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .results {
+            display: none;
+            margin-top: 30px;
+        }
+        
+        .result-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .result-card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .result-card h3 i {
+            font-size: 1.2em;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .info-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .info-item strong {
+            display: block;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .buttons-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .button-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #e1e5e9;
+        }
+        
+        .button-item .button-type {
+            font-weight: 600;
+            color: #667eea;
+            text-transform: capitalize;
+        }
+        
+        .button-item .button-text {
+            margin: 5px 0;
+            font-style: italic;
+        }
+        
+        .button-item .button-selector {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #666;
+            background: #f8f9fa;
+            padding: 5px 10px;
+            border-radius: 5px;
+            word-break: break-all;
+        }
+        
+        .selectors-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+        
+        .selector-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .selector-item strong {
+            display: block;
+            color: #667eea;
+            margin-bottom: 5px;
+            text-transform: capitalize;
+        }
+        
+        .selector-code {
+            font-family: 'Courier New', monospace;
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 5px;
+            word-break: break-all;
+            font-size: 0.9em;
+        }
+        
+        .actions-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .action-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 5px solid #dc3545;
+            margin-top: 20px;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 5px solid #28a745;
+            margin-top: 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e1e5e9;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 15px 25px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        
+        .tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .card-content {
+                padding: 20px;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .buttons-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-cookie-bite"></i> CMP Mapper</h1>
+            <p>Automated Cookie Consent Banner Detection & Rule Generation</p>
+        </div>
+        
+        <div class="main-card">
+            <div class="card-header">
+                <h2><i class="fas fa-search"></i> Analyze Consent Banners</h2>
+                <p>Enter a URL or HTML content to detect and analyze consent banners</p>
+            </div>
+            
+            <div class="card-content">
+                <div class="tabs">
+                    <div class="tab active" onclick="switchTab('url')">
+                        <i class="fas fa-link"></i> URL Analysis
+                    </div>
+                    <div class="tab" onclick="switchTab('html')">
+                        <i class="fas fa-code"></i> HTML Analysis
+                    </div>
+                </div>
+                
+                <div id="url-tab" class="tab-content active">
+                    <div class="input-group">
+                        <label for="url-input">
+                            <i class="fas fa-globe"></i> Website URL
+                        </label>
+                        <input type="text" id="url-input" placeholder="https://example.com" value="https://example.com">
+                    </div>
+                    <button class="btn" onclick="analyzeUrl()">
+                        <i class="fas fa-search"></i> Analyze Website
+                    </button>
+                </div>
+                
+                <div id="html-tab" class="tab-content">
+                    <div class="input-group">
+                        <label for="site-url-input">
+                            <i class="fas fa-globe"></i> Site URL (for reference)
+                        </label>
+                        <input type="text" id="site-url-input" placeholder="example.com" value="example.com">
+                    </div>
+                    <div class="input-group">
+                        <label for="html-input">
+                            <i class="fas fa-code"></i> HTML Content
+                        </label>
+                        <textarea id="html-input" placeholder="Paste your HTML content here..."><div id="cookie-consent-modal" class="modal-overlay">
+    <div class="cookie-banner">
+        <h3>Cookie Consent</h3>
+        <p>We use cookies to improve your experience.</p>
+        <button id="accept-btn" class="btn-accept">Accept All</button>
+        <button id="reject-btn" class="btn-reject">Reject All</button>
+        <button id="manage-btn" class="btn-manage">Manage Preferences</button>
+    </div>
+</div></textarea>
+                    </div>
+                    <button class="btn" onclick="analyzeHtml()">
+                        <i class="fas fa-code"></i> Analyze HTML
+                    </button>
+                </div>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing consent banner...</p>
+                </div>
+                
+                <div class="results" id="results">
+                    <!-- Results will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'url';
+        
+        function switchTab(tab) {
+            // Update tab appearance
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
+            
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(`${tab}-tab`).classList.add('active');
+            
+            currentTab = tab;
+        }
+        
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+        
+        function showError(message) {
+            hideLoading();
+            const results = document.getElementById('results');
+            results.innerHTML = `
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i> ${message}
+                </div>
+            `;
+            results.style.display = 'block';
+        }
+        
+        function showResults(data) {
+            hideLoading();
+            const results = document.getElementById('results');
+            
+            if (!data.banner_info) {
+                results.innerHTML = `
+                    <div class="success-message">
+                        <i class="fas fa-info-circle"></i> Analysis completed, but no consent banner was detected on this page.
+                    </div>
+                `;
+                results.style.display = 'block';
+                return;
+            }
+            
+            const bannerInfo = data.banner_info;
+            const rule = data.rule;
+            
+            let buttonsHtml = '';
+            if (bannerInfo.buttons && bannerInfo.buttons.length > 0) {
+                buttonsHtml = `
+                    <div class="buttons-list">
+                        ${bannerInfo.buttons.map(button => `
+                            <div class="button-item">
+                                <div class="button-type">${button.type}</div>
+                                <div class="button-text">"${button.text}"</div>
+                                <div class="button-selector">${button.selector}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            let selectorsHtml = '';
+            if (rule && rule.selectors) {
+                selectorsHtml = `
+                    <div class="selectors-section">
+                        <h4><i class="fas fa-crosshairs"></i> Generated Selectors</h4>
+                        ${Object.entries(rule.selectors).map(([key, value]) => `
+                            <div class="selector-item">
+                                <strong>${key.replace(/([A-Z])/g, ' $1').toLowerCase()}</strong>
+                                <div class="selector-code">${Array.isArray(value) ? value.join(', ') : value}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            let actionsHtml = '';
+            if (rule && rule.actions && rule.actions.length > 0) {
+                actionsHtml = `
+                    <div class="actions-list">
+                        ${rule.actions.map(action => `
+                            <span class="action-badge">${action}</span>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            results.innerHTML = `
+                <div class="success-message">
+                    <i class="fas fa-check-circle"></i> Consent banner detected and rule generated successfully!
+                </div>
+                
+                <div class="result-card">
+                    <h3><i class="fas fa-info-circle"></i> Page Information</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <strong>URL</strong>
+                            ${data.page_data.url}
+                        </div>
+                        <div class="info-item">
+                            <strong>HTML Size</strong>
+                            ${data.page_data.html_size.toLocaleString()} characters
+                        </div>
+                        <div class="info-item">
+                            <strong>Analysis Time</strong>
+                            ${new Date(data.page_data.collected_at).toLocaleString()}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="result-card">
+                    <h3><i class="fas fa-cookie-bite"></i> Banner Detection</h3>
+                    <span class="status-badge status-success">Confidence: ${(bannerInfo.confidence * 100).toFixed(1)}%</span>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <strong>Banner Type</strong>
+                            ${bannerInfo.banner_type}
+                        </div>
+                        <div class="info-item">
+                            <strong>Container Selector</strong>
+                            <div class="selector-code">${bannerInfo.container_selector}</div>
+                        </div>
+                        <div class="info-item">
+                            <strong>Buttons Found</strong>
+                            ${bannerInfo.buttons ? bannerInfo.buttons.length : 0}
+                        </div>
+                    </div>
+                    ${buttonsHtml}
+                </div>
+                
+                ${rule ? `
+                <div class="result-card">
+                    <h3><i class="fas fa-cogs"></i> Generated Rule</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <strong>Site</strong>
+                            ${rule.site}
+                        </div>
+                        <div class="info-item">
+                            <strong>Actions</strong>
+                            ${rule.actions ? rule.actions.length : 0} actions
+                        </div>
+                        <div class="info-item">
+                            <strong>Confidence Score</strong>
+                            ${rule.metadata && rule.metadata.confidence_score ? (rule.metadata.confidence_score * 100).toFixed(1) + '%' : 'N/A'}
+                        </div>
+                    </div>
+                    ${actionsHtml}
+                    ${selectorsHtml}
+                    
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-success" onclick="downloadRule()">
+                            <i class="fas fa-download"></i> Download Rule JSON
+                        </button>
+                    </div>
+                </div>
+                ` : ''}
+            `;
+            results.style.display = 'block';
+        }
+        
+        async function analyzeUrl() {
+            const url = document.getElementById('url-input').value.trim();
+            if (!url) {
+                showError('Please enter a URL to analyze');
+                return;
+            }
+            
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+                
+                showResults(data);
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+        
+        async function analyzeHtml() {
+            const html = document.getElementById('html-input').value.trim();
+            const siteUrl = document.getElementById('site-url-input').value.trim() || 'custom-site.com';
+            
+            if (!html) {
+                showError('Please enter HTML content to analyze');
+                return;
+            }
+            
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/analyze-html', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ html: html, url: siteUrl })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+                
+                showResults(data);
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+        
+        async function downloadRule() {
+            try {
+                const response = await fetch('/api/download-rule');
+                
+                if (!response.ok) {
+                    throw new Error('Failed to download rule');
+                }
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'consent_rule.json';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                showError('Failed to download rule: ' + error.message);
+            }
+        }
+        
+        // Initialize with example data
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-analyze the example HTML
+            setTimeout(() => {
+                if (currentTab === 'html') {
+                    analyzeHtml();
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>'''
+    
+    with open(os.path.join(templates_dir, 'index.html'), 'w', encoding='utf-8') as f:
+        f.write(index_html)
+
+def main():
+    """Start the web UI server."""
+    print("Starting CMP Mapper Web UI...")
+    
+    # Create templates
+    create_templates()
+    
+    # Start server in a separate thread
+    def run_server():
+        app.run(host='127.0.0.1', port=5000, debug=False, use_reloader=False)
+    
+    server_thread = threading.Thread(target=run_server, daemon=True)
+    server_thread.start()
+    
+    # Wait a moment for server to start
+    import time
+    time.sleep(2)
+    
+    # Open browser
+    print("Opening browser...")
+    webbrowser.open('http://127.0.0.1:5000')
+    
+    print("CMP Mapper Web UI is running!")
+    print("URL: http://127.0.0.1:5000")
+    print("Press Ctrl+C to stop the server")
+    
+    try:
+        # Keep the main thread alive
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\nShutting down CMP Mapper Web UI...")
+
+if __name__ == '__main__':
+    main()
