@@ -2,13 +2,27 @@
 Version information for CMP Mapper.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __build_date__ = "2025-01-16"
 __build_time__ = "19:15:00"
-__last_updated__ = "2025-01-16 19:15:00 UTC"
+__last_updated__ = "2025-01-17 01:40:00 UTC"
 
 # Update history
 UPDATE_HISTORY = [
+    {
+        "version": "1.1.0",
+        "date": "2025-01-17",
+        "time": "01:40:00",
+        "changes": [
+            "Added HCHC Family Health support (95% confidence detection)",
+            "Created Consent O Matic integration tools and converters",
+            "Added comprehensive HOW_TO_USE_RULES.md guide",
+            "Improved selector analysis and validation tools",
+            "Successfully tested with 3+ real-world websites",
+            "Generated working rules for margispharmacy.com and hchcfamilyhealth.org",
+            "Added manual setup instructions for Consent O Matic integration"
+        ]
+    },
     {
         "version": "1.0.0",
         "date": "2025-01-16",
