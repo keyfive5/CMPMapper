@@ -961,6 +961,13 @@ def main():
     except KeyboardInterrupt:
         print("\nShutting down CMP Mapper Web UI...")
 
+# Vercel entry point
+def handler(request):
+    return app(request.environ, start_response)
+
+def start_response(status, headers):
+    pass
+
 if __name__ == '__main__':
     # Get port from environment (for production) or use default
     port = int(os.environ.get('PORT', 5000))
