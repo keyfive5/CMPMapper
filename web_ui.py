@@ -962,4 +962,16 @@ def main():
         print("\nShutting down CMP Mapper Web UI...")
 
 if __name__ == '__main__':
-    main()
+    # Get port from environment (for production) or use default
+    port = int(os.environ.get('PORT', 5000))
+    host = '0.0.0.0' if os.environ.get('PORT') else '127.0.0.1'
+    
+    print("🍪 Starting CMP Mapper Web UI...")
+    print("=" * 50)
+    print(f"🌐 Web Interface: http://{host}:{port}")
+    print("📱 Mobile-friendly interface available")
+    print("🔄 Press Ctrl+C to stop the server")
+    print("=" * 50)
+    
+    # Start the Flask app
+    app.run(debug=False, host=host, port=port)
