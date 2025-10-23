@@ -52,7 +52,11 @@ class BannerDetector:
                     'modal', 'popup', 'overlay', 'banner', 'notice', 'dialog',
                     'fixed', 'absolute', 'z-index', 'position', 'sticky',
                     'cookie-banner', 'consent-banner', 'privacy-banner',
-                    'gdpr-banner', 'cookie-notice', 'consent-notice'
+                    'gdpr-banner', 'cookie-notice', 'consent-notice',
+                    'cookie-policy', 'privacy-policy', 'terms-of-use',
+                    'cookie-consent', 'privacy-consent', 'data-consent',
+                    'cookie-accept', 'accept-cookies', 'cookie-settings',
+                    'privacy-settings', 'consent-settings', 'cookie-preferences'
                 ]
             },
             'attribute_patterns': {
@@ -268,11 +272,16 @@ class BannerDetector:
         selectors = [
             "[id*='cookie']", "[class*='cookie']", "[id*='consent']", "[class*='consent']",
             "[id*='gdpr']", "[class*='gdpr']", "[id*='privacy']", "[class*='privacy']",
+            "[id*='accept']", "[class*='accept']", "[id*='decline']", "[class*='decline']",
+            "[id*='settings']", "[class*='settings']", "[id*='preferences']", "[class*='preferences']",
+            "[id*='policy']", "[class*='policy']", "[id*='terms']", "[class*='terms']",
             ".cc-banner", ".cookie-banner", ".consent-banner", ".gdpr-banner",
             ".privacy-notice", "#cookie-notice", "#consent-notice", "#gdpr-notice",
             "[data-testid*='cookie']", "[data-testid*='consent']",
             "[aria-label*='cookie']", "[aria-label*='consent']",
-            "[role='dialog']", "[role='banner']", "[role='alertdialog']"
+            "[role='dialog']", "[role='banner']", "[role='alertdialog']",
+            "[data-cookieconsent]", "[data-cookiebot]", "[data-consentmanager]",
+            "[data-onetrust]", "[data-usercentrics]", "[data-klaro]"
         ]
         
         for selector in selectors:

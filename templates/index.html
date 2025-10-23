@@ -205,6 +205,47 @@
             width: 16px;
         }
         
+        .terminal-output {
+            margin-top: 20px;
+            background: #1a1a1a;
+            border-radius: 8px;
+            overflow: hidden;
+            max-height: 200px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .terminal-header {
+            background: #333;
+            color: #fff;
+            padding: 8px 12px;
+            font-size: 0.9em;
+            font-weight: bold;
+            border-bottom: 1px solid #555;
+        }
+        
+        .terminal-header i {
+            margin-right: 8px;
+            color: #00ff00;
+        }
+        
+        .terminal-content {
+            padding: 12px;
+            color: #00ff00;
+            font-size: 0.85em;
+            line-height: 1.4;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .terminal-line {
+            margin-bottom: 4px;
+            word-wrap: break-word;
+        }
+        
+        .terminal-line:last-child {
+            margin-bottom: 0;
+        }
+        
         .instructions-content {
             margin-top: 20px;
         }
@@ -883,6 +924,14 @@ https://beyondrx.ca</textarea>
                             <p><i class="fas fa-clock"></i> <span id="current-step">Initializing...</span></p>
                             <p><i class="fas fa-info-circle"></i> <span id="step-description">Preparing analysis...</span></p>
                         </div>
+                        <div class="terminal-output" id="terminal-output">
+                            <div class="terminal-header">
+                                <i class="fas fa-terminal"></i> Analysis Log
+                            </div>
+                            <div class="terminal-content" id="terminal-content">
+                                <div class="terminal-line">🚀 Starting CMP Mapper analysis...</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -983,23 +1032,45 @@ https://beyondrx.ca</textarea>
             document.getElementById('current-step').textContent = currentStep;
             document.getElementById('step-description').textContent = description;
             
-            // Calculate stable ETA based on progress steps
+            // Add terminal output
+            addTerminalLine(`${currentStep} - ${description}`);
+            
+            // Calculate real-time ETA based on actual elapsed time
             const elapsed = Date.now() - startTime;
             const progressRatio = progress / 100;
             
-            // Use a fixed base time for more predictable ETA
-            const baseTime = 40000; // 40 seconds base time
-            const remainingRatio = (100 - progress) / 100;
-            const estimatedRemaining = baseTime * remainingRatio;
-            
-            const etaSeconds = Math.max(1, Math.round(estimatedRemaining / 1000));
-            
-            if (etaSeconds < 60) {
-                document.getElementById('eta-text').textContent = `ETA: ${etaSeconds}s`;
+            if (progressRatio > 0) {
+                // Calculate ETA based on actual progress
+                const totalEstimatedTime = elapsed / progressRatio;
+                const remainingTime = totalEstimatedTime - elapsed;
+                const etaSeconds = Math.max(1, Math.round(remainingTime / 1000));
+                
+                if (etaSeconds < 60) {
+                    document.getElementById('eta-text').textContent = `ETA: ${etaSeconds}s`;
+                } else {
+                    const minutes = Math.floor(etaSeconds / 60);
+                    const seconds = etaSeconds % 60;
+                    document.getElementById('eta-text').textContent = `ETA: ${minutes}m ${seconds}s`;
+                }
             } else {
-                const minutes = Math.floor(etaSeconds / 60);
-                const seconds = etaSeconds % 60;
-                document.getElementById('eta-text').textContent = `ETA: ${minutes}m ${seconds}s`;
+                document.getElementById('eta-text').textContent = 'ETA: Calculating...';
+            }
+        }
+        
+        function addTerminalLine(message) {
+            const terminalContent = document.getElementById('terminal-content');
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
+            line.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+            terminalContent.appendChild(line);
+            
+            // Auto-scroll to bottom
+            terminalContent.scrollTop = terminalContent.scrollHeight;
+            
+            // Limit to 50 lines to prevent memory issues
+            const lines = terminalContent.querySelectorAll('.terminal-line');
+            if (lines.length > 50) {
+                lines[0].remove();
             }
         }
         

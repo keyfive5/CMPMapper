@@ -48,14 +48,34 @@ class WebScraper:
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920,1080")
-        options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_experimental_option("excludeSwitches", ["enable-automation"])
         options.add_experimental_option('useAutomationExtension', False)
         
+        # Enhanced bot detection avoidance (keeping JavaScript enabled for banner detection)
+        options.add_argument("--disable-extensions")
+        options.add_argument("--disable-plugins")
+        options.add_argument("--disable-images")
+        options.add_argument("--disable-web-security")
+        options.add_argument("--allow-running-insecure-content")
+        options.add_argument("--disable-features=VizDisplayCompositor")
+        
+        # More realistic browser behavior
+        options.add_argument("--lang=en-US,en;q=0.9")
+        options.add_argument("--accept-language=en-US,en;q=0.9")
+        options.add_argument("--accept-encoding=gzip, deflate, br")
+        
         try:
             self.driver = webdriver.Chrome(options=options)
             self.driver.set_page_load_timeout(self.timeout)
+            
+            # Additional bot detection avoidance
+            self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            self.driver.execute_cdp_cmd('Network.setUserAgentOverride', {
+                "userAgent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+            })
+            
         except Exception as e:
             print(f"Warning: Could not initialize Chrome driver: {e}")
             print("Falling back to requests-based scraping")
@@ -96,6 +116,16 @@ class WebScraper:
             
             # Get page source
             html_content = self.driver.page_source
+            
+            # Check if we got a blocked/error page
+            if self._is_blocked_page(html_content):
+                print(f"⚠️  Bot protection page detected")
+                return PageData(
+                    url=url,
+                    html_content=html_content,
+                    collected_at=datetime.now().isoformat(),
+                    metadata={'blocked': True, 'error': 'Bot protection detected'}
+                )
             
             # Extract JavaScript content
             js_content = self._extract_javascript()
@@ -266,6 +296,23 @@ class WebScraper:
             
         except Exception as e:
             print(f"Error saving page data: {e}")
+    
+    def _is_blocked_page(self, html_content: str) -> bool:
+        """Check if the page content indicates we're blocked."""
+        html_lower = html_content.lower()
+        
+        # Common indicators of blocked/bot protection pages
+        blocked_indicators = [
+            '403', 'forbidden', 'access denied', 'blocked', 'bot detection',
+            'captcha', 'cloudflare', 'ddos protection', 'security check',
+            'please verify', 'verify you are human', 'robot check'
+        ]
+        
+        for indicator in blocked_indicators:
+            if indicator in html_lower:
+                return True
+        
+        return False
     
     def close(self):
         """Close the web driver."""
