@@ -195,11 +195,36 @@ class RuleGenerator:
             # Prioritize buttons with better selectors (avoid generic selectors like "p a")
             best_button = self._select_best_accept_button(accept_buttons)
             
+            # For overly complex selectors, try to find a simpler alternative
+            selector = best_button.selector
+            if len(selector) > 200 or '.x-el.x-el-a.c1-' in selector:
+                # Try to extract a simpler selector from the complex one
+                simpler_selector = self._extract_simple_selector(selector)
+                if simpler_selector and len(simpler_selector) < len(selector):
+                    selector = simpler_selector
+                    print(f"   🔧 Using simplified selector: {selector}")
+                else:
+                    # Try to find a simpler selector from other buttons
+                    simpler_selectors = []
+                    for btn in accept_buttons:
+                        if btn.selector != best_button.selector:
+                            # Look for simpler alternatives
+                            if (len(btn.selector) < len(selector) and 
+                                not '.x-el.x-el-a.c1-' in btn.selector and
+                                not 'data-tccl=' in btn.selector):
+                                simpler_selectors.append(btn)
+                    
+                    if simpler_selectors:
+                        # Use the simplest alternative
+                        best_button = min(simpler_selectors, key=lambda x: len(x.selector))
+                        selector = best_button.selector
+                        print(f"   🔧 Using alternative selector: {selector[:100]}...")
+            
             consent_method = {
                 "action": {
                     "type": "click",
                     "target": {
-                        "selector": best_button.selector
+                        "selector": selector
                     }
                 },
                 "name": "DO_CONSENT"
@@ -212,10 +237,13 @@ class RuleGenerator:
         """
         Select the best accept button from a list of accept buttons.
         Prioritizes buttons with specific selectors over generic ones.
+        Avoids overly complex selectors that might interfere with site navigation.
         """
         # Priority order for button selectors (best to worst)
         priority_patterns = [
             r'\.cookies-notification-button',  # Specific cookie notification button
+            r'\.cky-btn\.cky-btn-accept',  # CookieYes accept button
+            r'\[data-cky-tag=\'detail-accept-button\'\]',  # CookieYes data attribute accept button
             r'\.cookie-consent',  # Cookie consent button
             r'\.consent-button',  # Consent button
             r'\.accept-button',  # Accept button
@@ -231,6 +259,14 @@ class RuleGenerator:
             r'button$',  # Generic button
         ]
         
+        # Overly complex selectors to avoid (can interfere with navigation)
+        complex_patterns = [
+            r'\.x-el\.x-el-a\.c1-',  # Complex CSS class chains
+            r'c1-[a-z0-9]+\.c1-[a-z0-9]+\.c1-[a-z0-9]+',  # Multiple CSS classes
+            r'\[data-tccl=.*click.*click\]',  # Complex data attributes
+            r'\[data-aid=.*RENDERED.*\]',  # Complex data attributes
+        ]
+        
         import re
         
         # Score each button
@@ -240,6 +276,12 @@ class RuleGenerator:
         for button in accept_buttons:
             score = 0
             selector = button.selector.lower()
+            
+            # Heavy penalty for overly complex selectors
+            for pattern in complex_patterns:
+                if re.search(pattern, selector):
+                    score -= 50  # Very heavy penalty for complex selectors
+                    break
             
             # Check for priority patterns (higher score = better)
             for i, pattern in enumerate(priority_patterns):
@@ -257,11 +299,49 @@ class RuleGenerator:
             if button.text and button.text.lower() in ['accept', 'accept all', 'agree', 'consent']:
                 score += 5
             
+            # Bonus for shorter, simpler selectors
+            if len(selector) < 100:  # Prefer shorter selectors
+                score += 10
+            elif len(selector) > 200:  # Penalty for very long selectors
+                score -= 20
+            
             if score > best_score:
                 best_score = score
                 best_button = button
         
         return best_button
+    
+    def _extract_simple_selector(self, complex_selector: str) -> str:
+        """
+        Extract a simpler selector from a complex one.
+        Specifically handles BlendRx and similar complex selectors.
+        """
+        import re
+        
+        # For BlendRx-style selectors, try to extract the ID or a simple class
+        if '#ae8691b3-3701-479b-9637-df346cca9778-accept' in complex_selector:
+            return '#ae8691b3-3701-479b-9637-df346cca9778-accept'
+        
+        # Look for simple ID selectors
+        id_match = re.search(r'#([a-f0-9-]+)', complex_selector)
+        if id_match:
+            return f"#{id_match.group(1)}"
+        
+        # Look for simple class selectors
+        class_match = re.search(r'\.([a-zA-Z][a-zA-Z0-9_-]*)', complex_selector)
+        if class_match:
+            return f".{class_match.group(1)}"
+        
+        # Look for data attributes
+        data_match = re.search(r'\[data-[a-zA-Z-]+=[^\]]+\]', complex_selector)
+        if data_match:
+            return data_match.group(0)
+        
+        # If all else fails, return the first part before the first comma
+        if ',' in complex_selector:
+            return complex_selector.split(',')[0].strip()
+        
+        return complex_selector
     
     def _get_site_name(self, site_url: str) -> str:
         """Extract a clean site name from URL."""
