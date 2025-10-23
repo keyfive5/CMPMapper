@@ -142,6 +142,135 @@ class RuleGenerator:
         
         return actions
     
+    def generate_consent_o_matic_json(self, banner_info: BannerInfo) -> dict:
+        """Generate proper Consent O Matic JSON format (array-based structure for editor)."""
+        
+        # Extract site name for the rule key
+        site_name = self._get_site_name(banner_info.site)
+        
+        # Create the proper Consent O Matic structure (array-based format for editor)
+        rule = {
+            "$schema": "https://raw.githubusercontent.com/cavi-au/Consent-O-Matic/master/rules.schema.json",
+            f"{site_name} CMP": {
+                "detectors": [
+                    {
+                        "presentMatcher": [
+                            {
+                                "type": "css",
+                                "target": {
+                                    "selector": banner_info.container_selector
+                                }
+                            }
+                        ],
+                        "showingMatcher": [
+                            {
+                                "type": "css",
+                                "target": {
+                                    "selector": banner_info.container_selector
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "methods": [
+                    {
+                        "name": "HIDE_CMP"
+                    },
+                    {
+                        "name": "OPEN_OPTIONS"
+                    },
+                    {
+                        "name": "SAVE_CONSENT"
+                    },
+                    {
+                        "name": "UTILITY"
+                    }
+                ]
+            }
+        }
+        
+        # Add DO_CONSENT method if accept button exists
+        accept_buttons = [btn for btn in banner_info.buttons if btn.button_type.value == "accept"]
+        if accept_buttons:
+            # Prioritize buttons with better selectors (avoid generic selectors like "p a")
+            best_button = self._select_best_accept_button(accept_buttons)
+            
+            consent_method = {
+                "action": {
+                    "type": "click",
+                    "target": {
+                        "selector": best_button.selector
+                    }
+                },
+                "name": "DO_CONSENT"
+            }
+            rule[f"{site_name} CMP"]["methods"].insert(2, consent_method)
+        
+        return rule
+    
+    def _select_best_accept_button(self, accept_buttons: list) -> object:
+        """
+        Select the best accept button from a list of accept buttons.
+        Prioritizes buttons with specific selectors over generic ones.
+        """
+        # Priority order for button selectors (best to worst)
+        priority_patterns = [
+            r'\.cookies-notification-button',  # Specific cookie notification button
+            r'\.cookie-consent',  # Cookie consent button
+            r'\.consent-button',  # Consent button
+            r'\.accept-button',  # Accept button
+            r'\.btn.*accept',  # Button with accept in class
+            r'\[data-.*accept.*\]',  # Data attribute with accept
+            r'button.*accept',  # Button element with accept text
+        ]
+        
+        # Generic selectors to avoid (worst)
+        avoid_patterns = [
+            r'p a',  # Generic paragraph link
+            r'a$',  # Generic anchor
+            r'button$',  # Generic button
+        ]
+        
+        import re
+        
+        # Score each button
+        best_button = accept_buttons[0]  # Default to first button
+        best_score = -1
+        
+        for button in accept_buttons:
+            score = 0
+            selector = button.selector.lower()
+            
+            # Check for priority patterns (higher score = better)
+            for i, pattern in enumerate(priority_patterns):
+                if re.search(pattern, selector):
+                    score += len(priority_patterns) - i  # Higher score for earlier patterns
+                    break
+            
+            # Check for avoid patterns (negative score)
+            for pattern in avoid_patterns:
+                if re.search(pattern, selector):
+                    score -= 10  # Heavy penalty for generic selectors
+                    break
+            
+            # Bonus for specific button text
+            if button.text and button.text.lower() in ['accept', 'accept all', 'agree', 'consent']:
+                score += 5
+            
+            if score > best_score:
+                best_score = score
+                best_button = button
+        
+        return best_button
+    
+    def _get_site_name(self, site_url: str) -> str:
+        """Extract a clean site name from URL."""
+        # Remove protocol and get domain
+        domain = site_url.replace("https://", "").replace("http://", "").replace("www.", "")
+        # Remove path and get just the domain
+        domain = domain.split("/")[0]
+        return domain
+    
     def _generate_metadata(self, banner_info: BannerInfo) -> Dict[str, Any]:
         """Generate metadata for the rule."""
         return {

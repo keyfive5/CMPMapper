@@ -30,7 +30,10 @@ class BannerDetector:
                 'patterns': [
                     r'\bcookie\b', r'\bconsent\b', r'\bgdpr\b', r'\bprivacy\b',
                     r'\btracking\b', r'\banalytics\b', r'\badvertising\b',
-                    r'\bpersonalization\b', r'\bpreferences\b', r'\bsettings\b'
+                    r'\bpersonalization\b', r'\bpreferences\b', r'\bsettings\b',
+                    r'\bdata\s+collection\b', r'\bpersonal\s+data\b', r'\buser\s+data\b',
+                    r'\bmarketing\b', r'\bthird\s+party\b', r'\bessential\s+cookies\b',
+                    r'\bfunctional\s+cookies\b', r'\bperformance\s+cookies\b'
                 ]
             },
             'button_patterns': {
@@ -38,21 +41,27 @@ class BannerDetector:
                 'patterns': [
                     r'\baccept\b', r'\bagree\b', r'\bdecline\b', r'\breject\b',
                     r'\bmanage\b', r'\bpreferences\b', r'\bsettings\b', r'\bok\b',
-                    r'\bcontinue\b', r'\bproceed\b', r'\bgot it\b'
+                    r'\bcontinue\b', r'\bproceed\b', r'\bgot it\b', r'\bunderstood\b',
+                    r'\ballow\b', r'\bdeny\b', r'\bblock\b', r'\benable\b',
+                    r'\bdisable\b', r'\bcustomize\b', r'\bchoose\b', r'\bselect\b'
                 ]
             },
             'structural_patterns': {
                 'weight': 0.2,
                 'patterns': [
                     'modal', 'popup', 'overlay', 'banner', 'notice', 'dialog',
-                    'fixed', 'absolute', 'z-index', 'position'
+                    'fixed', 'absolute', 'z-index', 'position', 'sticky',
+                    'cookie-banner', 'consent-banner', 'privacy-banner',
+                    'gdpr-banner', 'cookie-notice', 'consent-notice'
                 ]
             },
             'attribute_patterns': {
                 'weight': 0.1,
                 'patterns': [
                     'data-consent', 'data-cookie', 'data-gdpr', 'data-privacy',
-                    'aria-label', 'role', 'data-testid', 'data-cy'
+                    'aria-label', 'role', 'data-testid', 'data-cy',
+                    'data-cookieconsent', 'data-cookiebot', 'data-consentmanager',
+                    'data-onetrust', 'data-usercentrics', 'data-klaro'
                 ]
             }
         }

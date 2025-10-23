@@ -1,0 +1,48 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cavi-au/Consent-O-Matic/master/rules.schema.json",
+  "hchcfamilyhealth.org CMP": {
+    "detectors": [
+      {
+        "presentMatcher": [
+          {
+            "type": "css",
+            "target": {
+              "selector": ".cookies-notification.cookies-notification--visible"
+            }
+          }
+        ],
+        "showingMatcher": [
+          {
+            "type": "css",
+            "target": {
+              "selector": ".cookies-notification.cookies-notification--visible"
+            }
+          }
+        ]
+      }
+    ],
+    "methods": [
+      {
+        "name": "HIDE_CMP"
+      },
+      {
+        "name": "OPEN_OPTIONS"
+      },
+      {
+        "action": {
+          "type": "click",
+          "target": {
+            "selector": "p a"
+          }
+        },
+        "name": "DO_CONSENT"
+      },
+      {
+        "name": "SAVE_CONSENT"
+      },
+      {
+        "name": "UTILITY"
+      }
+    ]
+  }
+}

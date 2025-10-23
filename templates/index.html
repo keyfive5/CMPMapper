@@ -1050,29 +1050,85 @@ https://beyondrx.ca</textarea>
             }
             
             let selectorsHtml = '';
-            if (rule && rule.selectors) {
-                selectorsHtml = `
-                    <div class="selectors-section">
-                        <h4><i class="fas fa-crosshairs"></i> Generated Selectors</h4>
-                        ${Object.entries(rule.selectors).map(([key, value]) => `
-                            <div class="selector-item">
-                                <strong>${key.replace(/([A-Z])/g, ' $1').toLowerCase()}</strong>
-                                <div class="selector-code">${Array.isArray(value) ? value.join(', ') : value}</div>
+            if (rule) {
+                // Handle Consent O Matic format
+                if (rule.$schema) {
+                    // New Consent O Matic format
+                    const siteKey = Object.keys(rule).find(key => key !== '$schema');
+                    const siteRule = rule[siteKey];
+                    
+                    if (siteRule && siteRule.detectors && siteRule.methods) {
+                        selectorsHtml = `
+                            <div class="selectors-section">
+                                <h4><i class="fas fa-crosshairs"></i> Generated Consent O Matic Rule</h4>
+                                <div class="rule-info">
+                                    <div class="rule-item">
+                                        <strong>Schema:</strong> <span class="selector-code">${rule.$schema}</span>
+                                    </div>
+                                    <div class="rule-item">
+                                        <strong>Site:</strong> <span class="selector-code">${siteKey}</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="detectors-section">
+                                    <h5><i class="fas fa-search"></i> Detectors</h5>
+                                    ${siteRule.detectors.map(detector => `
+                                        <div class="detector-item">
+                                            <strong>Present Matcher:</strong>
+                                            <div class="selector-code">${detector.presentMatcher[0].target.selector}</div>
+                                            <strong>Showing Matcher:</strong>
+                                            <div class="selector-code">${detector.showingMatcher[0].target.selector}</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                
+                                <div class="methods-section">
+                                    <h5><i class="fas fa-cogs"></i> Methods</h5>
+                                    ${siteRule.methods.map(method => `
+                                        <div class="method-item">
+                                            <strong>${method.name}</strong>
+                                            ${method.action ? `
+                                                <div class="action-details">
+                                                    <div class="selector-code">${method.action.target.selector}</div>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    `).join('')}
+                                </div>
                             </div>
-                        `).join('')}
-                    </div>
-                `;
+                        `;
+                    }
+                } else if (rule.selectors) {
+                    // Old format (fallback)
+                    selectorsHtml = `
+                        <div class="selectors-section">
+                            <h4><i class="fas fa-crosshairs"></i> Generated Selectors</h4>
+                            ${Object.entries(rule.selectors).map(([key, value]) => `
+                                <div class="selector-item">
+                                    <strong>${key.replace(/([A-Z])/g, ' $1').toLowerCase()}</strong>
+                                    <div class="selector-code">${Array.isArray(value) ? value.join(', ') : value}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
             }
             
             let actionsHtml = '';
-            if (rule && rule.actions && rule.actions.length > 0) {
-                actionsHtml = `
-                    <div class="actions-list">
-                        ${rule.actions.map(action => `
-                            <span class="action-badge">${action}</span>
-                        `).join('')}
-                    </div>
-                `;
+            if (rule) {
+                if (rule.$schema && rule.detectors) {
+                    // New Consent O Matic format - actions are already shown in methods section
+                    actionsHtml = '';
+                } else if (rule.actions && rule.actions.length > 0) {
+                    // Old format (fallback)
+                    actionsHtml = `
+                        <div class="actions-list">
+                            ${rule.actions.map(action => `
+                                <span class="action-badge">${action}</span>
+                            `).join('')}
+                        </div>
+                    `;
+                }
             }
             
             results.innerHTML = `

@@ -73,9 +73,12 @@ def analyze_url():
         
         # Generate rule if banner found
         rule = None
+        consent_o_matic_rule = None
         if banner_info:
             generator = RuleGenerator()
             rule = generator.generate_rule(banner_info)
+            # Also generate the proper Consent O Matic JSON format
+            consent_o_matic_rule = generator.generate_consent_o_matic_json(banner_info)
         
         # Store results
         current_results.update({
@@ -104,14 +107,15 @@ def analyze_url():
                 'selectors': rule.selectors if rule else {},
                 'actions': rule.actions if rule else [],
                 'metadata': rule.metadata if rule else {}
-            } if rule else None
+            } if rule else None,
+            'consent_o_matic_rule': consent_o_matic_rule
         })
         
         return jsonify({
             'success': True,
             'page_data': current_results['page_data'],
             'banner_info': current_results['banner_info'],
-            'rule': current_results['rule']
+            'rule': current_results['consent_o_matic_rule']  # Return the Consent O Matic format as the main rule
         })
         
     except Exception as e:
@@ -235,9 +239,12 @@ def analyze_html():
         
         # Generate rule if banner found
         rule = None
+        consent_o_matic_rule = None
         if banner_info:
             generator = RuleGenerator()
             rule = generator.generate_rule(banner_info)
+            # Also generate the proper Consent O Matic JSON format
+            consent_o_matic_rule = generator.generate_consent_o_matic_json(banner_info)
         
         # Store results
         current_results.update({
@@ -266,14 +273,15 @@ def analyze_html():
                 'selectors': rule.selectors if rule else {},
                 'actions': rule.actions if rule else [],
                 'metadata': rule.metadata if rule else {}
-            } if rule else None
+            } if rule else None,
+            'consent_o_matic_rule': consent_o_matic_rule
         })
         
         return jsonify({
             'success': True,
             'page_data': current_results['page_data'],
             'banner_info': current_results['banner_info'],
-            'rule': current_results['rule']
+            'rule': current_results['consent_o_matic_rule']  # Return the Consent O Matic format as the main rule
         })
         
     except Exception as e:
@@ -283,16 +291,27 @@ def analyze_html():
 def download_rule():
     """Download the generated rule as JSON."""
     try:
-        if not current_results.get('rule'):
+        # Use the Consent O Matic rule if available, otherwise fall back to old format
+        rule_to_download = current_results.get('consent_o_matic_rule') or current_results.get('rule')
+        
+        if not rule_to_download:
             return jsonify({'error': 'No rule available'}), 400
         
         # Create temporary file
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-            json.dump(current_results['rule'], f, indent=2)
+            json.dump(rule_to_download, f, indent=2)
             temp_file = f.name
         
-        return send_file(temp_file, as_attachment=True, 
-                        download_name=f"consent_rule_{current_results['rule']['site']}.json")
+        # Get site name for filename
+        if rule_to_download.get('$schema'):
+            # New format - find the site key
+            site_key = next((key for key in rule_to_download.keys() if key != '$schema'), 'unknown')
+            filename = f"consent_rule_{site_key}.json"
+        else:
+            # Old format
+            filename = f"consent_rule_{rule_to_download.get('site', 'unknown')}.json"
+        
+        return send_file(temp_file, as_attachment=True, download_name=filename)
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500

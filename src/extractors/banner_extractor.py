@@ -16,7 +16,9 @@ class BannerExtractor:
     CONSENT_KEYWORDS = [
         'cookie', 'consent', 'gdpr', 'privacy', 'accept', 'agree', 'decline', 'reject',
         'preferences', 'settings', 'manage', 'opt-in', 'opt-out', 'tracking', 'analytics',
-        'advertising', 'marketing', 'necessary', 'functional', 'performance', 'personalization'
+        'advertising', 'marketing', 'necessary', 'functional', 'performance', 'personalization',
+        'data collection', 'personal data', 'user data', 'third party', 'essential cookies',
+        'functional cookies', 'performance cookies', 'marketing cookies', 'analytics cookies'
     ]
     
     # Common button text patterns
@@ -25,17 +27,23 @@ class BannerExtractor:
         r'\bcontinue\b', r'\bproceed\b', r'\bi accept\b', r'\bi agree\b', r'\bgot it\b',
         r'\baccept all\b', r'\bagree all\b', r'\ballow all\b', r'\baccept cookies\b',
         r'\bagree to cookies\b', r'\benable\b', r'\bturn on\b', r'\bactivate\b',
-        r'\baccept all cookies\b', r'\ballow all cookies\b', r'\bi consent\b'
+        r'\baccept all cookies\b', r'\ballow all cookies\b', r'\bi consent\b',
+        r'\baccept all\b', r'\bturn on all\b', r'\benable all\b', r'\bactivate all\b',
+        r'\baccept & continue\b', r'\bagree & continue\b', r'\baccept and continue\b'
     ]
     
     REJECT_PATTERNS = [
         r'\bdecline\b', r'\breject\b', r'\bdeny\b', r'\bno\b', r'\brefuse\b', r'\bdisagree\b',
-        r'\bopt.?out\b', r'\bnecessary only\b', r'\brequired only\b', r'\bessential only\b'
+        r'\bopt.?out\b', r'\bnecessary only\b', r'\brequired only\b', r'\bessential only\b',
+        r'\bdecline all\b', r'\breject all\b', r'\bdeny all\b', r'\bblock all\b',
+        r'\bdisable all\b', r'\bturn off all\b', r'\bessential cookies only\b'
     ]
     
     MANAGE_PATTERNS = [
         r'\bmanage\b', r'\bpreferences\b', r'\bsettings\b', r'\boptions\b', r'\bcustomize\b',
-        r'\bchoose\b', r'\bselect\b', r'\bconfigure\b', r'\bcontrol\b'
+        r'\bchoose\b', r'\bselect\b', r'\bconfigure\b', r'\bcontrol\b', r'\badjust\b',
+        r'\bmanage cookies\b', r'\bcookie preferences\b', r'\bprivacy settings\b',
+        r'\bmanage preferences\b', r'\bcustomize settings\b', r'\bprivacy options\b'
     ]
     
     CLOSE_PATTERNS = [
