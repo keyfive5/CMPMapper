@@ -117,6 +117,99 @@ def analyze_url():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/analyze-multiple', methods=['POST'])
+def analyze_multiple_urls():
+    """Analyze multiple URLs for consent banners."""
+    try:
+        data = request.get_json()
+        urls = data.get('urls', [])
+        
+        if not urls:
+            return jsonify({'error': 'URLs list is required'}), 400
+        
+        if len(urls) > 10:
+            return jsonify({'error': 'Maximum 10 URLs allowed per batch'}), 400
+        
+        results = []
+        banner_infos = []
+        
+        for i, url in enumerate(urls):
+            try:
+                # Add https if no protocol specified
+                if not url.startswith(('http://', 'https://')):
+                    url = 'https://' + url
+                
+                # Collect page data
+                with WebScraper(headless=True, timeout=30) as scraper:
+                    page_data = scraper.collect_page(url)
+                
+                if not page_data or not page_data.html_content:
+                    results.append({
+                        'url': url,
+                        'success': False,
+                        'error': 'Failed to collect page data'
+                    })
+                    continue
+                
+                # Detect banner
+                detector = BannerDetector()
+                banner_info = detector.detect_banner(page_data)
+                
+                if banner_info:
+                    banner_infos.append(banner_info)
+                
+                results.append({
+                    'url': url,
+                    'success': True,
+                    'banner_info': {
+                        'site': banner_info.site if banner_info else None,
+                        'banner_type': banner_info.banner_type.value if banner_info else None,
+                        'confidence': banner_info.detection_confidence if banner_info else 0,
+                        'buttons': [
+                            {
+                                'type': button.button_type.value,
+                                'text': button.text,
+                                'selector': button.selector
+                            } for button in banner_info.buttons
+                        ] if banner_info else [],
+                        'container_selector': banner_info.container_selector if banner_info else None,
+                        'overlay_selectors': banner_info.overlay_selectors if banner_info else []
+                    } if banner_info else None,
+                    'page_data': {
+                        'html_size': len(page_data.html_content),
+                        'title': page_data.metadata.get('page_title', 'Unknown'),
+                        'collected_at': page_data.collected_at
+                    }
+                })
+                
+            except Exception as e:
+                results.append({
+                    'url': url,
+                    'success': False,
+                    'error': str(e)
+                })
+        
+        # Generate multi-site rule if any banners found
+        multi_site_rule = None
+        if banner_infos:
+            generator = RuleGenerator()
+            multi_site_rule = generator.generate_multi_site_rule(banner_infos)
+        
+        return jsonify({
+            'success': True,
+            'results': results,
+            'multi_site_rule': {
+                'site': multi_site_rule.site if multi_site_rule else None,
+                'selectors': multi_site_rule.selectors if multi_site_rule else {},
+                'actions': multi_site_rule.actions if multi_site_rule else [],
+                'metadata': multi_site_rule.metadata if multi_site_rule else {},
+                'sites_covered': len(banner_infos)
+            } if multi_site_rule else None
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/analyze-html', methods=['POST'])
 def analyze_html():
     """Analyze HTML content for consent banners."""
@@ -203,6 +296,84 @@ def download_rule():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/download-multi-site-rule', methods=['POST'])
+def download_multi_site_rule():
+    """Download the multi-site rule as JSON."""
+    try:
+        data = request.get_json()
+        if not data or not data.get('rule'):
+            return jsonify({'error': 'No multi-site rule available'}), 400
+        
+        # Create temporary file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            json.dump(data['rule'], f, indent=2)
+            temp_file = f.name
+        
+        return send_file(temp_file, as_attachment=True, 
+                        download_name=f"multi_site_consent_rule.json")
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/consent-o-matic-instructions', methods=['GET'])
+def get_consent_o_matic_instructions():
+    """Get Consent O Matic configuration instructions."""
+    return jsonify({
+        'instructions': {
+            'title': 'How to Configure Consent O Matic',
+            'steps': [
+                {
+                    'step': 1,
+                    'title': 'Install Consent O Matic',
+                    'description': 'Install the Consent O Matic browser extension from the Chrome Web Store or Firefox Add-ons.',
+                    'details': 'Search for "Consent O Matic" in your browser\'s extension store and install it.'
+                },
+                {
+                    'step': 2,
+                    'title': 'Open Consent O Matic Settings',
+                    'description': 'Click on the Consent O Matic icon in your browser toolbar and select "Options" or "Settings".',
+                    'details': 'You can also right-click the extension icon and select "Options".'
+                },
+                {
+                    'step': 3,
+                    'title': 'Add New Rule',
+                    'description': 'In the Consent O Matic settings, click "Add Rule" or "Create New Rule".',
+                    'details': 'Look for the "+" button or "New Rule" option in the rules section.'
+                },
+                {
+                    'step': 4,
+                    'title': 'Configure Rule Settings',
+                    'description': 'Enter the website domain and configure the rule settings.',
+                    'details': [
+                        'Site: Enter the website domain (e.g., example.com)',
+                        'Present Matcher: Use the banner selector from the generated rule',
+                        'Showing Matcher: Use the same banner selector or a more specific one',
+                        'Target: Use the accept button selector from the generated rule',
+                        'Parent: Use the banner container selector'
+                    ]
+                },
+                {
+                    'step': 5,
+                    'title': 'Test the Rule',
+                    'description': 'Visit the website and test if the rule works correctly.',
+                    'details': 'The consent banner should be automatically hidden or the accept button clicked when you visit the site.'
+                },
+                {
+                    'step': 6,
+                    'title': 'Fine-tune if Needed',
+                    'description': 'If the rule doesn\'t work perfectly, adjust the selectors in the rule settings.',
+                    'details': 'You can use browser developer tools (F12) to inspect elements and get more specific selectors.'
+                }
+            ],
+            'tips': [
+                'Always test rules on the actual website before relying on them',
+                'Some websites may change their banner structure, requiring rule updates',
+                'Use the browser\'s developer tools to inspect elements and verify selectors',
+                'For multi-site rules, test on multiple websites to ensure compatibility'
+            ]
+        }
+    })
 
 @app.route('/api/results', methods=['GET'])
 def get_results():

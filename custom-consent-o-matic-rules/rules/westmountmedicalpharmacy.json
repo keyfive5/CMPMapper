@@ -1,0 +1,61 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cavi-au/Consent-O-Matic/master/rules.schema.json",
+  "WestmountMedicalPharmacy": {
+    "detectors": {
+      "presentMatcher": {
+        "type": "css",
+        "target": {
+          "selector": ".cky-modal"
+        }
+      },
+      "showingMatcher": {
+        "type": "css",
+        "target": {
+          "selector": ".cky-modal"
+        }
+      }
+    },
+    "methods": {
+      "HIDE_CMP": {
+        "action": {
+          "type": "hide",
+          "target": {
+            "selector": ".cky-modal"
+          }
+        }
+      },
+      "DO_CONSENT": {
+        "action": {
+          "type": "click",
+          "target": {
+            "selector": ".cky-btn.cky-btn-accept, [data-cky-tag='detail-accept-button']"
+          }
+        }
+      },
+      "DO_REJECT": {
+        "action": {
+          "type": "click",
+          "target": {
+            "selector": ".cky-btn.cky-btn-reject, [data-cky-tag='detail-reject-button']"
+          }
+        }
+      },
+      "OPEN_OPTIONS": {
+        "action": {
+          "type": "click",
+          "target": {
+            "selector": ".cky-show-desc-btn, [data-cky-tag='show-desc-button']"
+          }
+        }
+      },
+      "SAVE_CONSENT": {
+        "action": {
+          "type": "click",
+          "target": {
+            "selector": ".cky-btn.cky-btn-preferences, [data-cky-tag='detail-save-button']"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "title": "Consent O Matic JSON Format Guide",
+  "description": "Understanding different Consent O Matic JSON rule formats",
+  "formats": {
+    "detector_method_format": {
+      "description": "Uses detectors and methods structure",
+      "example": "Cookiebot, OneTrust",
+      "structure": {
+        "detectors": {
+          "presentMatcher": "CSS selector to detect banner presence",
+          "showingMatcher": "CSS selector to detect banner visibility"
+        },
+        "methods": {
+          "HIDE_CMP": "Hide the banner",
+          "DO_CONSENT": "Click accept button",
+          "OPEN_OPTIONS": "Open preferences",
+          "SAVE_CONSENT": "Save preferences"
+        }
+      }
+    },
+    "simple_action_format": {
+      "description": "Simple action-based format",
+      "example": "Amazon, Facebook",
+      "structure": {
+        "actions": "Array of actions to perform",
+        "target": "CSS selector for the element"
+      }
+    }
+  },
+  "common_patterns": {
+    "banner_detection": [
+      ".cookie-banner",
+      "#cookie-notice",
+      "[data-cookie]",
+      ".consent-banner"
+    ],
+    "button_selectors": [
+      "#accept-cookies",
+      ".accept-button",
+      "[data-accept]",
+      ".consent-accept"
+    ],
+    "action_types": [
+      "click",
+      "hide",
+      "wait",
+      "scroll"
+    ]
+  }
+}

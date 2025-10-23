@@ -1,0 +1,56 @@
+🍪 CMP Mapper + Consent O Matic Workflow
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    YOUR CMP MAPPER PROTOTYPE                    │
+│                                                                 │
+│  Website with Unknown Cookie Banner                            │
+│           ↓                                                     │
+│  CMP Mapper Analyzes:                                          │
+│  • Detects banner elements                                     │
+│  • Finds button selectors                                      │
+│  • Generates JSON rule                                         │
+│           ↓                                                     │
+│  Output: JSON Rule File                                         │
+└─────────────────────────────────────────────────────────────────┘
+                                ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    CONSENT O MATIC EXTENSION                    │
+│                                                                 │
+│  1. Open "GDPR Consent Rules Editor"                           │
+│  2. Click "From Pasted JSON"                                   │
+│  3. Paste your JSON rule                                       │
+│  4. Click "Load"                                               │
+│           ↓                                                     │
+│  Rule Editor Interface Opens:                                   │
+│  • Left: Draggable elements (Matchers & Actions)               │
+│  • Right: Rule configuration area                              │
+│           ↓                                                     │
+│  5. Drag elements to configure:                                 │
+│     - Detectors: How to find the banner                        │
+│     - Methods: What actions to take                            │
+│           ↓                                                     │
+│  6. Click "Save Custom Rule"                                   │
+│  7. Give it a name (e.g., "MargisPharmacy")                    │
+└─────────────────────────────────────────────────────────────────┘
+                                ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                        AUTOMATIC EXECUTION                      │
+│                                                                 │
+│  When you visit the website:                                   │
+│  • Consent O Matic detects the banner                          │
+│  • Applies your saved rule                                     │
+│  • Automatically clicks buttons or hides banner               │
+│  • No more cookie popups!                                      │
+└─────────────────────────────────────────────────────────────────┘
+
+🎯 YOUR PROTOTYPE'S VALUE:
+Instead of manually figuring out CSS selectors and button patterns,
+your CMP Mapper does this automatically and generates the JSON rule!
+
+🔧 TESTING PROCESS:
+1. Run CMP Mapper on pharmacy websites
+2. Generate JSON rules
+3. Import into Consent O Matic
+4. Save and test the rules
+5. Verify they work automatically
+6. Document results and improvements

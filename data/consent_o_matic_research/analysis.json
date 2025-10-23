@@ -1,0 +1,13 @@
+{
+  "common_patterns": {
+    "$schema": 8,
+    "cookiebot": 1,
+    "onetrust": 1,
+    "amazon": 1,
+    "Facebook": 1,
+    "google_popup": 1,
+    "cookieinformation": 1,
+    "quantcast": 1,
+    "sourcepoint": 1
+  },
+  "action_types": 

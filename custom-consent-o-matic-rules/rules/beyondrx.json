@@ -1,0 +1,53 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cavi-au/Consent-O-Matic/master/rules.schema.json",
+  "Beyondrx": {
+    "detectors": {
+      "presentMatcher": {
+        "type": "css",
+        "target": {
+          "selector": "#shopify-pc__banner, .shopify-pc__banner__dialog, [role='alertdialog']"
+        }
+      },
+      "showingMatcher": {
+        "type": "css",
+        "target": {
+          "selector": "#shopify-pc__banner, .shopify-pc__banner__dialog, [role='alertdialog']"
+        }
+      }
+    },
+    "methods": {
+      "HIDE_CMP": {
+        "action": {
+          "type": "hide",
+          "target": {
+            "selector": "#shopify-pc__banner, .shopify-pc__banner__dialog, [role='alertdialog']"
+          }
+        }
+      },
+      "DO_CONSENT": {
+        "action": {
+          "type": "click",
+          "target": {
+            "selector": "#shopify-pc__banner__btn-accept, .shopify-pc__banner__btn-accept"
+          }
+        }
+      },
+      "OPEN_OPTIONS": {
+        "action": {
+          "type": "click",
+          "target": {
+            "selector": "#shopify-pc__banner__btn-manage-prefs, .shopify-pc__banner__btn-manage-prefs"
+          }
+        }
+      },
+      "SAVE_CONSENT": {
+        "action": {
+          "type": "click",
+          "target": {
+            "selector": "#shopify-pc__banner__btn-accept, .shopify-pc__banner__btn-accept"
+          }
+        }
+      }
+    }
+  }
+}

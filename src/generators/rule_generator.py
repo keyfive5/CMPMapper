@@ -110,7 +110,7 @@ class RuleGenerator:
         
         # Overlay selectors
         if banner_info.overlay_selectors:
-            selectors['overlay'] = banner_info.overlay_selectors
+            selectors['overlay'] = ', '.join(banner_info.overlay_selectors)
         
         # Additional selectors
         selectors.update(banner_info.additional_selectors)
@@ -197,6 +197,124 @@ class RuleGenerator:
             rules.append(rule)
         
         return rules
+    
+    def generate_multi_site_rule(self, banners: List[BannerInfo]) -> ConsentRule:
+        """
+        Generate a single rule that works across multiple sites with similar banners.
+        
+        Args:
+            banners: List of BannerInfo objects from different sites
+            
+        Returns:
+            ConsentRule object optimized for multiple sites
+        """
+        if not banners:
+            raise ValueError("No banners provided for multi-site rule generation")
+        
+        # Extract common patterns across all banners
+        common_selectors = self._find_common_selectors(banners)
+        common_actions = self._find_common_actions(banners)
+        
+        # Create combined site identifier
+        sites = [self._extract_domain(banner.site) for banner in banners]
+        combined_site = f"multi-site-{len(sites)}-sites"
+        
+        # Calculate average confidence
+        avg_confidence = sum(banner.detection_confidence for banner in banners) / len(banners)
+        
+        # Generate metadata
+        metadata = {
+            "generated_at": datetime.now().isoformat(),
+            "generator_version": "0.1.0",
+            "confidence_score": avg_confidence,
+            "banner_type": "multi-site",
+            "sites_covered": sites,
+            "site_count": len(sites),
+            "multi_site_rule": True,
+            "tested": False
+        }
+        
+        # Create the multi-site rule
+        rule = ConsentRule(
+            site=combined_site,
+            selectors=common_selectors,
+            actions=common_actions,
+            metadata=metadata
+        )
+        
+        return rule
+    
+    def _find_common_selectors(self, banners: List[BannerInfo]) -> Dict[str, str]:
+        """Find common selectors across multiple banners."""
+        common_selectors = {}
+        
+        # Collect all selectors by type
+        selector_groups = {
+            'banner': [],
+            'acceptButton': [],
+            'rejectButton': [],
+            'manageButton': [],
+            'closeButton': [],
+            'overlay': []
+        }
+        
+        for banner in banners:
+            # Banner container
+            if banner.container_selector:
+                selector_groups['banner'].append(banner.container_selector)
+            
+            # Buttons
+            for button in banner.buttons:
+                button_type = f"{button.button_type.value}Button"
+                if button_type in selector_groups:
+                    selector_groups[button_type].append(button.selector)
+            
+            # Overlays
+            if banner.overlay_selectors:
+                selector_groups['overlay'].extend(banner.overlay_selectors)
+        
+        # Find most common selectors
+        for selector_type, selectors in selector_groups.items():
+            if selectors:
+                # Find the most common selector (simple approach)
+                from collections import Counter
+                counter = Counter(selectors)
+                most_common = counter.most_common(1)[0]
+                
+                # If there's a clear winner (appears in >50% of sites), use it
+                if most_common[1] > len(banners) * 0.5:
+                    common_selectors[selector_type] = most_common[0]
+                else:
+                    # Otherwise, combine multiple selectors
+                    unique_selectors = list(set(selectors))
+                    if len(unique_selectors) <= 3:  # Keep it manageable
+                        common_selectors[selector_type] = ', '.join(unique_selectors)
+                    else:
+                        # Use the most common ones
+                        top_selectors = [s[0] for s in counter.most_common(3)]
+                        common_selectors[selector_type] = ', '.join(top_selectors)
+        
+        return common_selectors
+    
+    def _find_common_actions(self, banners: List[BannerInfo]) -> List[str]:
+        """Find common actions across multiple banners."""
+        action_counts = {}
+        
+        # Generate actions for each banner
+        for banner in banners:
+            actions = self._generate_actions(banner)
+            for action in actions:
+                action_counts[action] = action_counts.get(action, 0) + 1
+        
+        # Include actions that appear in at least 50% of banners
+        threshold = len(banners) * 0.5
+        common_actions = [action for action, count in action_counts.items() if count >= threshold]
+        
+        # Ensure we have at least basic actions
+        if not common_actions:
+            common_actions = ["hideBanner", "clickRejectIfPossible"]
+        
+        return common_actions
     
     def save_rule(self, rule: ConsentRule, filename: str = None) -> str:
         """

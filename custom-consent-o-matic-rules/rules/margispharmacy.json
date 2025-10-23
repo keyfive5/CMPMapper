@@ -1,0 +1,45 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cavi-au/Consent-O-Matic/master/rules.schema.json",
+  "MargisPharmacy": {
+    "detectors": {
+      "presentMatcher": {
+        "type": "css",
+        "target": {
+          "selector": ".ideocookie-banner"
+        }
+      },
+      "showingMatcher": {
+        "type": "css",
+        "target": {
+          "selector": ".ideocookie-banner"
+        }
+      }
+    },
+    "methods": {
+      "HIDE_CMP": {
+        "action": {
+          "type": "hide",
+          "target": {
+            "selector": ".ideocookie-banner"
+          }
+        }
+      },
+      "DO_CONSENT": {
+        "action": {
+          "type": "click",
+          "target": {
+            "selector": "#ideocookie-selectall"
+          }
+        }
+      },
+      "SAVE_CONSENT": {
+        "action": {
+          "type": "click",
+          "target": {
+            "selector": "#ideocookie-selectall"
+          }
+        }
+      }
+    }
+  }
+}

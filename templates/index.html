@@ -133,7 +133,7 @@
         .loading {
             display: none;
             text-align: center;
-            padding: 20px;
+            padding: 30px;
         }
         
         .spinner {
@@ -149,6 +149,285 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+        
+        .loading-content {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .progress-container {
+            margin: 20px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e1e5e9;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .loading-details {
+            text-align: left;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .loading-details p {
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .loading-details i {
+            color: #667eea;
+            width: 16px;
+        }
+        
+        .instructions-content {
+            margin-top: 20px;
+        }
+        
+        .instruction-steps {
+            margin: 20px 0;
+        }
+        
+        .instruction-step {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .instruction-step h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .instruction-step p {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        .instruction-step ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .instruction-step li {
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+        
+        /* Learning Content Styles */
+        .learning-content {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .format-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border-left: 5px solid #667eea;
+        }
+        
+        .format-section h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .format-section h5 {
+            color: #4a5568;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .format-section h6 {
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+        
+        .correlation-table {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        
+        .correlation-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .editor-field {
+            flex: 1;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .arrow {
+            margin: 0 15px;
+            color: #667eea;
+            font-size: 1.2em;
+        }
+        
+        .json-path {
+            flex: 2;
+            font-family: 'Courier New', monospace;
+            background: #e2e8f0;
+            padding: 5px 10px;
+            border-radius: 5px;
+            color: #2d3748;
+            font-size: 0.9em;
+        }
+        
+        .format-example {
+            background: #f7fafc;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .format-example pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        
+        .selector-patterns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 15px 0;
+        }
+        
+        .pattern-group {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .pattern-group ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .pattern-group li {
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        
+        .pattern-group code {
+            background: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #2d3748;
+        }
+        
+        .action-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .action-type {
+            background: #f0fff4;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #48bb78;
+        }
+        
+        .pro-tips {
+            background: #fff5f5;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #f56565;
+        }
+        
+        .pro-tips li {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        @media (max-width: 768px) {
+            .selector-patterns {
+                grid-template-columns: 1fr;
+            }
+            
+            .correlation-row {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .arrow {
+                margin: 10px 0;
+                transform: rotate(90deg);
+            }
+        }
+        
+        .instruction-tips {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #28a745;
+            margin-top: 20px;
+        }
+        
+        .instruction-tips h4 {
+            color: #28a745;
+            margin-bottom: 15px;
+        }
+        
+        .instruction-tips ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .instruction-tips li {
+            margin-bottom: 8px;
+            line-height: 1.4;
         }
         
         .results {
@@ -387,10 +666,16 @@
             <div class="card-content">
                 <div class="tabs">
                     <div class="tab active" onclick="switchTab('url')">
-                        <i class="fas fa-link"></i> URL Analysis
+                        <i class="fas fa-link"></i> Single URL
+                    </div>
+                    <div class="tab" onclick="switchTab('multiple')">
+                        <i class="fas fa-globe"></i> Multiple URLs
                     </div>
                     <div class="tab" onclick="switchTab('html')">
                         <i class="fas fa-code"></i> HTML Analysis
+                    </div>
+                    <div class="tab" onclick="switchTab('learn')">
+                        <i class="fas fa-graduation-cap"></i> Learn JSON
                     </div>
                 </div>
                 
@@ -403,6 +688,23 @@
                     </div>
                     <button class="btn" onclick="analyzeUrl()">
                         <i class="fas fa-search"></i> Analyze Website
+                    </button>
+                </div>
+                
+                <div id="multiple-tab" class="tab-content">
+                    <div class="input-group">
+                        <label for="multiple-urls-input">
+                            <i class="fas fa-list"></i> Multiple URLs (one per line, max 10)
+                        </label>
+                        <textarea id="multiple-urls-input" placeholder="https://example1.com&#10;https://example2.com&#10;https://example3.com" rows="6">https://margispharmacy.com
+https://midtowncompoundingpharmacy.ca
+https://beyondrx.ca</textarea>
+                    </div>
+                    <button class="btn" onclick="analyzeMultipleUrls()">
+                        <i class="fas fa-search"></i> Analyze All Websites
+                    </button>
+                    <button class="btn btn-secondary" onclick="generateMultiSiteRule()">
+                        <i class="fas fa-cogs"></i> Generate Multi-Site Rule
                     </button>
                 </div>
                 
@@ -432,9 +734,156 @@
                     </button>
                 </div>
                 
+                <div id="learn-tab" class="tab-content">
+                    <div class="learning-content">
+                        <h3><i class="fas fa-graduation-cap"></i> Learn Consent O Matic JSON Formats</h3>
+                        
+                        <div class="format-section">
+                            <h4>🎯 JSON ↔ Editor Correlation</h4>
+                            <p>Understanding how JSON rules map to the Consent O Matic editor interface:</p>
+                            
+                            <div class="correlation-table">
+                                <div class="correlation-row">
+                                    <div class="editor-field">Present Matcher</div>
+                                    <div class="arrow">→</div>
+                                    <div class="json-path">detectors.presentMatcher.target.selector</div>
+                                </div>
+                                <div class="correlation-row">
+                                    <div class="editor-field">Showing Matcher</div>
+                                    <div class="arrow">→</div>
+                                    <div class="json-path">detectors.showingMatcher.target.selector</div>
+                                </div>
+                                <div class="correlation-row">
+                                    <div class="editor-field">Hide Banner</div>
+                                    <div class="arrow">→</div>
+                                    <div class="json-path">methods.HIDE_CMP.action.target.selector</div>
+                                </div>
+                                <div class="correlation-row">
+                                    <div class="editor-field">Accept Button</div>
+                                    <div class="arrow">→</div>
+                                    <div class="json-path">methods.DO_CONSENT.action.target.selector</div>
+                                </div>
+                                <div class="correlation-row">
+                                    <div class="editor-field">Manage Button</div>
+                                    <div class="arrow">→</div>
+                                    <div class="json-path">methods.OPEN_OPTIONS.action.target.selector</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="format-section">
+                            <h4>📋 Common JSON Formats</h4>
+                            
+                            <div class="format-example">
+                                <h5>Format 1: Detector + Method Structure</h5>
+                                <pre><code>{
+  "$schema": "https://raw.githubusercontent.com/cavi-au/Consent-O-Matic/master/rules.schema.json",
+  "SiteName": {
+    "detectors": {
+      "presentMatcher": {
+        "type": "css",
+        "target": {
+          "selector": ".cookie-banner"
+        }
+      },
+      "showingMatcher": {
+        "type": "css", 
+        "target": {
+          "selector": ".cookie-banner"
+        }
+      }
+}</code></pre>
+                            </div>
+                            
+                            <div class="format-example">
+                                <h5>Format 2: Simple Action Structure</h5>
+                                <pre><code>{
+  "name": "Example Site",
+  "actions": [
+    {
+      "type": "click",
+      "target": {
+        "selector": ".accept-button"
+      }
+    }
+  ]
+}</code></pre>
+                            </div>
+                        </div>
+                        
+                        <div class="format-section">
+                            <h4>🎨 Common Selector Patterns</h4>
+                            <div class="selector-patterns">
+                                <div class="pattern-group">
+                                    <h6>Banner Detection:</h6>
+                                    <ul>
+                                        <li><code>.cookie-banner</code> - Class-based banner</li>
+                                        <li><code>#cookie-notice</code> - ID-based banner</li>
+                                        <li><code>[data-cookie]</code> - Data attribute banner</li>
+                                        <li><code>.consent-banner</code> - Consent-specific banner</li>
+                                    </ul>
+                                </div>
+                                <div class="pattern-group">
+                                    <h6>Button Selection:</h6>
+                                    <ul>
+                                        <li><code>#accept-cookies</code> - Accept button by ID</li>
+                                        <li><code>.accept-button</code> - Accept button by class</li>
+                                        <li><code>[data-accept]</code> - Accept button by data attribute</li>
+                                        <li><code>button[type="submit"]</code> - Submit button</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="format-section">
+                            <h4>🔧 Action Types</h4>
+                            <div class="action-types">
+                                <div class="action-type">
+                                    <strong>click</strong> - Click an element
+                                </div>
+                                <div class="action-type">
+                                    <strong>hide</strong> - Hide an element
+                                </div>
+                                <div class="action-type">
+                                    <strong>wait</strong> - Wait for an element
+                                </div>
+                                <div class="action-type">
+                                    <strong>scroll</strong> - Scroll to an element
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="format-section">
+                            <h4>💡 Pro Tips</h4>
+                            <ul class="pro-tips">
+                                <li>Use <strong>data attributes</strong> when available - they're more stable than classes</li>
+                                <li>Combine multiple selectors with <strong>commas</strong> for better coverage</li>
+                                <li>Test selectors in browser dev tools before using in rules</li>
+                                <li>Use <strong>displayFilter: true</strong> to ensure elements are visible</li>
+                                <li>Keep selectors <strong>simple and specific</strong> for better reliability</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="loading" id="loading">
                     <div class="spinner"></div>
-                    <p>Analyzing consent banner...</p>
+                    <div class="loading-content">
+                        <p id="loading-text">Analyzing consent banner...</p>
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progress-fill"></div>
+                            </div>
+                            <div class="progress-info">
+                                <span id="progress-text">0%</span>
+                                <span id="eta-text">ETA: Calculating...</span>
+                            </div>
+                        </div>
+                        <div class="loading-details" id="loading-details">
+                            <p><i class="fas fa-clock"></i> <span id="current-step">Initializing...</span></p>
+                            <p><i class="fas fa-info-circle"></i> <span id="step-description">Preparing analysis...</span></p>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="results" id="results">
@@ -459,13 +908,99 @@
             currentTab = tab;
         }
         
-        function showLoading() {
+        let progressInterval;
+        let startTime;
+        
+        function showLoading(loadingType = 'single') {
             document.getElementById('loading').style.display = 'block';
             document.getElementById('results').style.display = 'none';
+            
+            // Reset progress
+            updateProgress(0, 'Initializing...', 'Preparing analysis...');
+            
+            // Start progress simulation
+            startTime = Date.now();
+            startProgressSimulation(loadingType);
         }
         
         function hideLoading() {
-            document.getElementById('loading').style.display = 'none';
+            // Complete the progress bar
+            updateProgress(100, 'Complete!', 'Analysis finished successfully');
+            
+            // Clear the interval and hide loading after a brief delay
+            if (progressInterval) {
+                clearInterval(progressInterval);
+            }
+            
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+            }, 500);
+        }
+        
+        function startProgressSimulation(loadingType) {
+            const steps = loadingType === 'multiple' ? [
+                { progress: 5, step: 'Initializing analysis...', description: 'Setting up multi-site analysis' },
+                { progress: 15, step: 'Connecting to websites...', description: 'Establishing connections to all target URLs' },
+                { progress: 30, step: 'Collecting page data...', description: 'Downloading HTML content from websites' },
+                { progress: 45, step: 'Analyzing banners...', description: 'Detecting consent banners and buttons' },
+                { progress: 60, step: 'Extracting features...', description: 'Identifying banner patterns and selectors' },
+                { progress: 75, step: 'Generating rules...', description: 'Creating Consent O Matic compatible rules' },
+                { progress: 85, step: 'Optimizing selectors...', description: 'Refining CSS selectors for reliability' },
+                { progress: 95, step: 'Finalizing results...', description: 'Preparing analysis results for display' }
+            ] : [
+                { progress: 10, step: 'Initializing analysis...', description: 'Setting up single-site analysis' },
+                { progress: 25, step: 'Connecting to website...', description: 'Establishing connection to target URL' },
+                { progress: 40, step: 'Collecting page data...', description: 'Downloading HTML content and metadata' },
+                { progress: 55, step: 'Analyzing banner...', description: 'Detecting consent banner and buttons' },
+                { progress: 70, step: 'Extracting features...', description: 'Identifying banner patterns and selectors' },
+                { progress: 85, step: 'Generating rule...', description: 'Creating Consent O Matic compatible rule' },
+                { progress: 95, step: 'Finalizing results...', description: 'Preparing analysis results for display' }
+            ];
+            
+            let currentStep = 0;
+            const totalSteps = steps.length;
+            
+            progressInterval = setInterval(() => {
+                if (currentStep < totalSteps) {
+                    const step = steps[currentStep];
+                    updateProgress(step.progress, step.step, step.description);
+                    currentStep++;
+                } else {
+                    // Show dynamic final messages
+                    const finalMessages = [
+                        'Almost done...', 'Processing final results', 'Optimizing selectors...', 
+                        'Validating rules...', 'Preparing output...', 'Finalizing analysis...'
+                    ];
+                    const randomMessage = finalMessages[Math.floor(Math.random() * finalMessages.length)];
+                    updateProgress(95, randomMessage, 'Almost complete...');
+                }
+            }, 1200); // Slightly slower for more realistic progress
+        }
+        
+        function updateProgress(progress, currentStep, description) {
+            document.getElementById('progress-fill').style.width = progress + '%';
+            document.getElementById('progress-text').textContent = progress + '%';
+            document.getElementById('current-step').textContent = currentStep;
+            document.getElementById('step-description').textContent = description;
+            
+            // Calculate stable ETA based on progress steps
+            const elapsed = Date.now() - startTime;
+            const progressRatio = progress / 100;
+            
+            // Use a fixed base time for more predictable ETA
+            const baseTime = 40000; // 40 seconds base time
+            const remainingRatio = (100 - progress) / 100;
+            const estimatedRemaining = baseTime * remainingRatio;
+            
+            const etaSeconds = Math.max(1, Math.round(estimatedRemaining / 1000));
+            
+            if (etaSeconds < 60) {
+                document.getElementById('eta-text').textContent = `ETA: ${etaSeconds}s`;
+            } else {
+                const minutes = Math.floor(etaSeconds / 60);
+                const seconds = etaSeconds % 60;
+                document.getElementById('eta-text').textContent = `ETA: ${minutes}m ${seconds}s`;
+            }
         }
         
         function showError(message) {
@@ -492,6 +1027,9 @@
                 results.style.display = 'block';
                 return;
             }
+            
+            // Store current rule for download
+            window.currentRule = data.rule;
             
             const bannerInfo = data.banner_info;
             const rule = data.rule;
@@ -604,6 +1142,55 @@
                         <button class="btn btn-success" onclick="downloadRule()">
                             <i class="fas fa-download"></i> Download Rule JSON
                         </button>
+                        <button class="btn btn-secondary" onclick="showConsentOMaticInstructions()">
+                            <i class="fas fa-question-circle"></i> How to Configure Consent O Matic
+                        </button>
+                    </div>
+                </div>
+                ` : ''}
+                
+                ${rule ? `
+                <div class="result-card" id="consent-o-matic-instructions" style="display: none;">
+                    <h3><i class="fas fa-question-circle"></i> Consent O Matic Configuration Guide</h3>
+                    <div class="instructions-content">
+                        <p><strong>Follow these steps to configure Consent O Matic with your generated rule:</strong></p>
+                        <div class="instruction-steps">
+                            <div class="instruction-step">
+                                <h4>Step 1: Install Consent O Matic</h4>
+                                <p>Install the Consent O Matic browser extension from the Chrome Web Store or Firefox Add-ons.</p>
+                            </div>
+                            <div class="instruction-step">
+                                <h4>Step 2: Open Settings</h4>
+                                <p>Click on the Consent O Matic icon in your browser toolbar and select "Options" or "Settings".</p>
+                            </div>
+                            <div class="instruction-step">
+                                <h4>Step 3: Add New Rule</h4>
+                                <p>In the Consent O Matic settings, click "Add Rule" or "Create New Rule".</p>
+                            </div>
+                            <div class="instruction-step">
+                                <h4>Step 4: Configure Rule Settings</h4>
+                                <p>Enter the following values from your generated rule:</p>
+                                <ul>
+                                    <li><strong>Site:</strong> ${rule.site || 'your-website.com'}</li>
+                                    <li><strong>Present Matcher:</strong> ${rule.selectors?.banner || 'banner selector'}</li>
+                                    <li><strong>Showing Matcher:</strong> ${rule.selectors?.banner || 'banner selector'}</li>
+                                    <li><strong>Target:</strong> ${rule.selectors?.acceptButton || 'accept button selector'}</li>
+                                    <li><strong>Parent:</strong> ${rule.selectors?.banner || 'banner container selector'}</li>
+                                </ul>
+                            </div>
+                            <div class="instruction-step">
+                                <h4>Step 5: Test the Rule</h4>
+                                <p>Visit the website and test if the rule works correctly. The consent banner should be automatically handled.</p>
+                            </div>
+                        </div>
+                        <div class="instruction-tips">
+                            <h4>💡 Tips:</h4>
+                            <ul>
+                                <li>Always test rules on the actual website before relying on them</li>
+                                <li>Use browser developer tools (F12) to inspect elements and verify selectors</li>
+                                <li>Some websites may change their banner structure, requiring rule updates</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
                 ` : ''}
@@ -618,7 +1205,7 @@
                 return;
             }
             
-            showLoading();
+            showLoading('single');
             
             try {
                 const response = await fetch('/api/analyze', {
@@ -641,6 +1228,270 @@
             }
         }
         
+        async function analyzeMultipleUrls() {
+            const urlsText = document.getElementById('multiple-urls-input').value.trim();
+            if (!urlsText) {
+                showError('Please enter URLs to analyze');
+                return;
+            }
+            
+            const urls = urlsText.split('\n').map(url => url.trim()).filter(url => url);
+            if (urls.length === 0) {
+                showError('Please enter valid URLs');
+                return;
+            }
+            
+            if (urls.length > 10) {
+                showError('Maximum 10 URLs allowed per batch');
+                return;
+            }
+            
+            showLoading('multiple');
+            
+            try {
+                const response = await fetch('/api/analyze-multiple', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ urls: urls })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+                
+                showMultipleResults(data);
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+        
+        async function generateMultiSiteRule() {
+            const urlsText = document.getElementById('multiple-urls-input').value.trim();
+            if (!urlsText) {
+                showError('Please enter URLs to generate multi-site rule');
+                return;
+            }
+            
+            const urls = urlsText.split('\n').map(url => url.trim()).filter(url => url);
+            if (urls.length === 0) {
+                showError('Please enter valid URLs');
+                return;
+            }
+            
+            if (urls.length > 10) {
+                showError('Maximum 10 URLs allowed per batch');
+                return;
+            }
+            
+            showLoading('multiple');
+            
+            try {
+                const response = await fetch('/api/analyze-multiple', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ urls: urls })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+                
+                showMultiSiteRule(data);
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+        
+        function showMultipleResults(data) {
+            hideLoading();
+            const results = document.getElementById('results');
+            
+            let resultsHtml = `
+                <div class="success-message">
+                    <i class="fas fa-check-circle"></i> Multiple website analysis completed!
+                </div>
+            `;
+            
+            // Show individual results
+            data.results.forEach((result, index) => {
+                if (result.success && result.banner_info) {
+                    resultsHtml += `
+                        <div class="result-card">
+                            <h3><i class="fas fa-globe"></i> ${result.url}</h3>
+                            <span class="status-badge status-success">Confidence: ${(result.banner_info.confidence * 100).toFixed(1)}%</span>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <strong>Banner Type</strong>
+                                    ${result.banner_info.banner_type}
+                                </div>
+                                <div class="info-item">
+                                    <strong>Buttons Found</strong>
+                                    ${result.banner_info.buttons ? result.banner_info.buttons.length : 0}
+                                </div>
+                                <div class="info-item">
+                                    <strong>Container Selector</strong>
+                                    <div class="selector-code">${result.banner_info.container_selector}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else if (result.success) {
+                    resultsHtml += `
+                        <div class="result-card">
+                            <h3><i class="fas fa-globe"></i> ${result.url}</h3>
+                            <span class="status-badge status-warning">No banner detected</span>
+                        </div>
+                    `;
+                } else {
+                    resultsHtml += `
+                        <div class="result-card">
+                            <h3><i class="fas fa-globe"></i> ${result.url}</h3>
+                            <span class="status-badge status-error">Error: ${result.error}</span>
+                        </div>
+                    `;
+                }
+            });
+            
+            results.innerHTML = resultsHtml;
+            results.style.display = 'block';
+        }
+        
+        function showMultiSiteRule(data) {
+            hideLoading();
+            const results = document.getElementById('results');
+            
+            if (!data.multi_site_rule) {
+                results.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i> No banners found to generate multi-site rule
+                    </div>
+                `;
+                results.style.display = 'block';
+                return;
+            }
+            
+            const rule = data.multi_site_rule;
+            
+            // Store current multi-site rule for download
+            window.currentMultiSiteRule = rule;
+            
+            let selectorsHtml = '';
+            if (rule.selectors) {
+                selectorsHtml = `
+                    <div class="selectors-section">
+                        <h4><i class="fas fa-crosshairs"></i> Multi-Site Selectors</h4>
+                        ${Object.entries(rule.selectors).map(([key, value]) => `
+                            <div class="selector-item">
+                                <strong>${key.replace(/([A-Z])/g, ' $1').toLowerCase()}</strong>
+                                <div class="selector-code">${Array.isArray(value) ? value.join(', ') : value}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            let actionsHtml = '';
+            if (rule.actions && rule.actions.length > 0) {
+                actionsHtml = `
+                    <div class="actions-list">
+                        ${rule.actions.map(action => `
+                            <span class="action-badge">${action}</span>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            results.innerHTML = `
+                <div class="success-message">
+                    <i class="fas fa-check-circle"></i> Multi-site rule generated successfully!
+                </div>
+                
+                <div class="result-card">
+                    <h3><i class="fas fa-globe"></i> Multi-Site Rule</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <strong>Sites Covered</strong>
+                            ${rule.sites_covered} sites
+                        </div>
+                        <div class="info-item">
+                            <strong>Actions</strong>
+                            ${rule.actions ? rule.actions.length : 0} actions
+                        </div>
+                        <div class="info-item">
+                            <strong>Confidence Score</strong>
+                            ${rule.metadata && rule.metadata.confidence_score ? (rule.metadata.confidence_score * 100).toFixed(1) + '%' : 'N/A'}
+                        </div>
+                    </div>
+                    ${actionsHtml}
+                    ${selectorsHtml}
+                    
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-success" onclick="downloadMultiSiteRule()">
+                            <i class="fas fa-download"></i> Download Multi-Site Rule
+                        </button>
+                        <button class="btn btn-secondary" onclick="showConsentOMaticInstructions()">
+                            <i class="fas fa-question-circle"></i> How to Configure Consent O Matic
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="result-card" id="consent-o-matic-instructions" style="display: none;">
+                    <h3><i class="fas fa-question-circle"></i> Multi-Site Rule Configuration Guide</h3>
+                    <div class="instructions-content">
+                        <p><strong>Follow these steps to configure Consent O Matic with your multi-site rule:</strong></p>
+                        <div class="instruction-steps">
+                            <div class="instruction-step">
+                                <h4>Step 1: Install Consent O Matic</h4>
+                                <p>Install the Consent O Matic browser extension from the Chrome Web Store or Firefox Add-ons.</p>
+                            </div>
+                            <div class="instruction-step">
+                                <h4>Step 2: Open Settings</h4>
+                                <p>Click on the Consent O Matic icon in your browser toolbar and select "Options" or "Settings".</p>
+                            </div>
+                            <div class="instruction-step">
+                                <h4>Step 3: Add New Rule</h4>
+                                <p>In the Consent O Matic settings, click "Add Rule" or "Create New Rule".</p>
+                            </div>
+                            <div class="instruction-step">
+                                <h4>Step 4: Configure Multi-Site Rule Settings</h4>
+                                <p>For each website you want to cover, create a separate rule with these values:</p>
+                                <ul>
+                                    <li><strong>Site:</strong> Enter each website domain separately</li>
+                                    <li><strong>Present Matcher:</strong> ${rule.selectors?.banner || 'banner selector'}</li>
+                                    <li><strong>Showing Matcher:</strong> ${rule.selectors?.banner || 'banner selector'}</li>
+                                    <li><strong>Target:</strong> ${rule.selectors?.acceptButton || 'accept button selector'}</li>
+                                    <li><strong>Parent:</strong> ${rule.selectors?.banner || 'banner container selector'}</li>
+                                </ul>
+                                <p><strong>Note:</strong> You'll need to create one rule per website domain, as Consent O Matic doesn't support wildcard domains.</p>
+                            </div>
+                            <div class="instruction-step">
+                                <h4>Step 5: Test All Rules</h4>
+                                <p>Visit each website and test if the rule works correctly. The consent banner should be automatically handled.</p>
+                            </div>
+                        </div>
+                        <div class="instruction-tips">
+                            <h4>💡 Multi-Site Tips:</h4>
+                            <ul>
+                                <li>Create separate rules for each domain you want to cover</li>
+                                <li>Test each rule individually to ensure compatibility</li>
+                                <li>Some websites may need slightly different selectors</li>
+                                <li>Use the browser's developer tools (F12) to fine-tune selectors if needed</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+            results.style.display = 'block';
+        }
+        
         async function analyzeHtml() {
             const html = document.getElementById('html-input').value.trim();
             const siteUrl = document.getElementById('site-url-input').value.trim() || 'custom-site.com';
@@ -650,7 +1501,7 @@
                 return;
             }
             
-            showLoading();
+            showLoading('single');
             
             try {
                 const response = await fetch('/api/analyze-html', {
@@ -692,6 +1543,45 @@
                 document.body.removeChild(a);
             } catch (error) {
                 showError('Failed to download rule: ' + error.message);
+            }
+        }
+        
+        async function downloadMultiSiteRule() {
+            try {
+                const response = await fetch('/api/download-multi-site-rule', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ rule: window.currentMultiSiteRule })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to download multi-site rule');
+                }
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'multi_site_consent_rule.json';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                showError('Failed to download multi-site rule: ' + error.message);
+            }
+        }
+        
+        function showConsentOMaticInstructions() {
+            const instructionsElement = document.getElementById('consent-o-matic-instructions');
+            if (instructionsElement) {
+                if (instructionsElement.style.display === 'none') {
+                    instructionsElement.style.display = 'block';
+                } else {
+                    instructionsElement.style.display = 'none';
+                }
             }
         }
         

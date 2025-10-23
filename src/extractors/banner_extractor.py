@@ -138,7 +138,92 @@ class BannerExtractor:
             "[class*='privacy-widget']",
             "[data-widget*='cookie']",
             "[data-widget*='consent']",
-            "[data-widget*='gdpr']"
+            "[data-widget*='gdpr']",
+            # Shopify and modern e-commerce patterns
+            "[id*='shopify']",
+            "[class*='shopify']",
+            "[id*='klaviyo']",
+            "[class*='klaviyo']",
+            "[id*='mailchimp']",
+            "[class*='mailchimp']",
+            "[id*='google-analytics']",
+            "[class*='google-analytics']",
+            "[id*='facebook-pixel']",
+            "[class*='facebook-pixel']",
+            "[id*='tracking']",
+            "[class*='tracking']",
+            "[id*='marketing']",
+            "[class*='marketing']",
+            "[id*='advertising']",
+            "[class*='advertising']",
+            "[id*='analytics']",
+            "[class*='analytics']",
+            "[id*='personalization']",
+            "[class*='personalization']",
+            "[data-consent]",
+            "[data-cookie]",
+            "[data-gdpr]",
+            "[data-privacy]",
+            "[data-tracking]",
+            "[data-marketing]",
+            "[data-advertising]",
+            "[data-analytics]",
+            # Generic modern patterns
+            "[id*='data-consent']",
+            "[class*='data-consent']",
+            "[id*='user-consent']",
+            "[class*='user-consent']",
+            "[id*='web-consent']",
+            "[class*='web-consent']",
+            "[id*='site-consent']",
+            "[class*='site-consent']",
+            "[id*='page-consent']",
+            "[class*='page-consent']",
+            "[id*='website-consent']",
+            "[class*='website-consent']",
+            "[id*='online-consent']",
+            "[class*='online-consent']",
+            "[id*='digital-consent']",
+            "[class*='digital-consent']",
+            "[id*='web-consent']",
+            "[class*='web-consent']",
+            "[id*='internet-consent']",
+            "[class*='internet-consent']",
+            "[id*='cyber-consent']",
+            "[class*='cyber-consent']",
+            "[id*='virtual-consent']",
+            "[class*='virtual-consent']",
+            "[id*='electronic-consent']",
+            "[class*='electronic-consent']",
+            "[id*='e-consent']",
+            "[class*='e-consent']",
+            # Additional common patterns
+            "[role='alertdialog']",
+            "[role='dialog']",
+            "[aria-modal='true']",
+            "[aria-label*='cookie']",
+            "[aria-label*='consent']",
+            "[aria-label*='privacy']",
+            "[title*='cookie']",
+            "[title*='consent']",
+            "[title*='privacy']",
+            # Generic banner/notification patterns
+            "[class*='notification']",
+            "[class*='alert']",
+            "[class*='notice']",
+            "[class*='popup']",
+            "[class*='modal']",
+            "[class*='overlay']",
+            "[class*='banner']",
+            "[class*='bar']",
+            "[id*='notification']",
+            "[id*='alert']",
+            "[id*='notice']",
+            "[id*='popup']",
+            "[id*='modal']",
+            "[id*='overlay']",
+            "[id*='banner']",
+            "[id*='bar']"
         ]
         
         for selector in selectors:
@@ -178,26 +263,74 @@ class BannerExtractor:
                 any(keyword in btn.get_text().lower() for keyword in ['accept', 'agree', 'reject', 'decline', 'manage'])):
                 clickable_buttons.append(btn)
         
-        # More lenient - allow banners even without obvious buttons if they have consent keywords
-        if keyword_count >= 2 and not clickable_buttons:
-            return True
+        # Exclude footer elements and navigation elements
+        classes = ' '.join(element.get('class', [])).lower()
+        element_id = element.get('id', '').lower()
         
-        # Check for common banner attributes
-        attrs = str(element.attrs).lower()
-        if any(keyword in attrs for keyword in self.CONSENT_KEYWORDS):
-            return True
+        # Skip footer, navigation, and other non-banner elements (but be more selective)
+        skip_patterns = ['footer', 'nav', 'navigation', 'header', 'menu', 'sidebar']
+        # Only skip if it's clearly a footer/nav AND doesn't have consent-related content
+        if any(pattern in classes or pattern in element_id for pattern in skip_patterns):
+            # Check if it has consent-related content - if so, don't skip it
+            consent_indicators = ['consent', 'cookie', 'privacy', 'gdpr', 'accept', 'agree', 'decline', 'reject']
+            has_consent_content = any(indicator in text for indicator in consent_indicators)
+            if not has_consent_content:
+                return False
         
-        # Check if element contains consent-related text patterns
-        consent_text_patterns = [
-            'cookie', 'consent', 'privacy', 'gdpr', 'accept', 'agree', 
-            'decline', 'reject', 'manage', 'preferences'
+        # Check for banner-like positioning or styling
+        style = element.get('style', '').lower()
+        position_indicators = [
+            'position: fixed', 'position: absolute', 'top: 0', 'bottom: 0',
+            'z-index:', 'overlay', 'modal', 'popup', 'banner', 'bar', 'notification',
+            'sticky', 'floating'
         ]
         
-        for pattern in consent_text_patterns:
-            if pattern in text and len(text) > 20:  # Must have some substantial content
-                return True
+        has_positioning = any(indicator in style for indicator in position_indicators)
         
-        return len(clickable_buttons) > 0
+        # Check for data attributes that might indicate consent functionality
+        data_attrs = [attr for attr in element.attrs.keys() if attr.startswith('data-')]
+        consent_data_attrs = any('consent' in attr or 'cookie' in attr or 'privacy' in attr or 'gdpr' in attr for attr in data_attrs)
+        
+        # Must have positioning indicators OR consent data attributes OR specific banner classes/IDs
+        if not (has_positioning or consent_data_attrs or 
+                any(keyword in classes for keyword in ['banner', 'popup', 'modal', 'overlay', 'notification']) or
+                any(keyword in element_id for keyword in ['banner', 'popup', 'modal', 'overlay', 'notification'])):
+            return False
+        
+        # Check for consent-related text patterns (more specific)
+        consent_text_patterns = [
+            'cookie policy', 'cookie notice', 'cookie banner', 'cookie consent',
+            'privacy policy', 'privacy notice', 'privacy banner', 'privacy consent',
+            'gdpr notice', 'gdpr banner', 'gdpr consent', 'gdpr policy',
+            'accept cookies', 'accept all cookies', 'allow cookies', 'enable cookies',
+            'manage cookies', 'cookie preferences', 'cookie settings',
+            'decline cookies', 'reject cookies', 'necessary cookies only'
+        ]
+        
+        # Look for specific consent-related phrases
+        has_consent_phrase = any(phrase in text for phrase in consent_text_patterns)
+        
+        # More lenient detection - accept if it has consent phrases OR data attributes OR positioning OR consent buttons
+        if not (has_consent_phrase or consent_data_attrs or has_positioning):
+            # Check if it has any consent-related buttons even without positioning
+            consent_buttons = []
+            for btn in clickable_buttons:
+                btn_text = btn.get_text().lower()
+                if any(keyword in btn_text for keyword in ['accept', 'agree', 'reject', 'decline', 'manage', 'ok', 'yes', 'no', 'allow', 'deny', 'continue', 'proceed', 'close', 'dismiss']):
+                    consent_buttons.append(btn)
+            
+            if len(consent_buttons) == 0:
+                return False
+        
+        # Check for consent-related buttons
+        consent_buttons = []
+        for btn in clickable_buttons:
+            btn_text = btn.get_text().lower()
+            if any(keyword in btn_text for keyword in ['accept', 'agree', 'reject', 'decline', 'manage', 'ok', 'yes', 'no', 'allow', 'deny', 'continue', 'proceed', 'close', 'dismiss']):
+                consent_buttons.append(btn)
+        
+        # Accept if it has consent buttons OR consent phrases OR positioning
+        return len(consent_buttons) > 0 or has_consent_phrase or has_positioning
     
     def _calculate_relevance_score(self, element: Tag) -> float:
         """Calculate relevance score for a banner container."""

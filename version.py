@@ -2,13 +2,27 @@
 Version information for CMP Mapper.
 """
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 __build_date__ = "2025-01-16"
 __build_time__ = "19:15:00"
-__last_updated__ = "2025-01-17 01:40:00 UTC"
+__last_updated__ = "2025-01-17 02:15:00 UTC"
 
 # Update history
 UPDATE_HISTORY = [
+    {
+        "version": "1.2.0",
+        "date": "2025-01-17",
+        "time": "02:15:00",
+        "changes": [
+            "Added multiple website batch analysis support (up to 10 URLs)",
+            "Implemented advanced loading bar with ETA and progress tracking",
+            "Created multi-site rule generation for cross-website compatibility",
+            "Enhanced UI with new 'Multiple URLs' tab and batch processing",
+            "Added real-time progress updates with contextual information",
+            "Improved user experience with detailed loading states and ETA calculations",
+            "Generated universal rules that work across multiple similar websites"
+        ]
+    },
     {
         "version": "1.1.0",
         "date": "2025-01-17",

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://raw.githubusercontent.com/[your-username]/consent-o-matic-rules/master/rules.schema.json",
+  "MidtownCompoundingPharmacy": {
+    "detectors": {
+      "presentMatcher": {
+        "type": "css",
+        "target": {
+          "selector": ".widget.widget-cookie-banner.widget-cookie-banner-cookie-1"
+        }
+      },
+      "showingMatcher": {
+        "type": "css",
+        "target": {
+          "selector": ".widget.widget-cookie-banner.widget-cookie-banner-cookie-1"
+        }
+      }
+    },
+    "methods": {
+      "HIDE_CMP": {
+        "action": {
+          "type": "hide",
+          "target": {
+            "selector": ".widget.widget-cookie-banner.widget-cookie-banner-cookie-1"
+          }
+        }
+      },
+      "DO_CONSENT": {
+        "action": {
+          "type": "click",
+          "target": {
+            "selector": "[data-ux-btn='primary']"
+          }
+        }
+      },
+      "SAVE_CONSENT": {
+        "action": {
+          "type": "click",
+          "target": {
+            "selector": "[data-ux-btn='primary']"
+          }
+        }
+      }
+    }
+  }
+}
