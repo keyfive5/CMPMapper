@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 from ..models import BannerInfo, ConsentRule, ButtonType, BannerType
 from .template_builder import TemplateBuilder
 from .consent_o_matic_adapter import ConsentOMaticAdapter
+from ..analyzers.pattern_analyzer import PatternAnalyzer
 
 
 class RuleGenerator:
@@ -20,6 +21,7 @@ class RuleGenerator:
         """Initialize the rule generator."""
         self.template_builder = TemplateBuilder()
         self.adapter = ConsentOMaticAdapter()
+        self.pattern_analyzer = PatternAnalyzer()
         
         # Default rule template structure
         self.default_template = {
@@ -443,26 +445,37 @@ class RuleGenerator:
         if not banners:
             raise ValueError("No banners provided for multi-site rule generation")
         
-        # Extract common patterns across all banners
-        common_selectors = self._find_common_selectors(banners)
-        common_actions = self._find_common_actions(banners)
+        # Use pattern analyzer to find common patterns
+        pattern_groups = self.pattern_analyzer.find_common_patterns(banners)
+        
+        # Extract common patterns using intelligent analysis
+        common_selectors = self._find_common_selectors_intelligent(banners, pattern_groups)
+        common_actions = self._find_common_actions_intelligent(banners, pattern_groups)
         
         # Create combined site identifier
         sites = [self._extract_domain(banner.site) for banner in banners]
         combined_site = f"multi-site-{len(sites)}-sites"
         
-        # Calculate average confidence
+        # Calculate average confidence with pattern analysis boost
         avg_confidence = sum(banner.detection_confidence for banner in banners) / len(banners)
+        pattern_confidence = self._calculate_pattern_confidence(pattern_groups)
+        final_confidence = min(avg_confidence + pattern_confidence * 0.2, 1.0)
         
-        # Generate metadata
+        # Generate enhanced metadata
         metadata = {
             "generated_at": datetime.now().isoformat(),
-            "generator_version": "0.1.0",
-            "confidence_score": avg_confidence,
+            "generator_version": "0.2.0",
+            "confidence_score": final_confidence,
             "banner_type": "multi-site",
             "sites_covered": sites,
             "site_count": len(sites),
             "multi_site_rule": True,
+            "pattern_analysis": {
+                "total_patterns": len(pattern_groups),
+                "high_confidence_patterns": len([p for p in pattern_groups if p.confidence >= 0.8]),
+                "pattern_types": list(set(p.pattern_type for p in pattern_groups))
+            },
+            "optimization_notes": self._generate_optimization_notes(pattern_groups),
             "tested": False
         }
         
@@ -801,3 +814,170 @@ class RuleGenerator:
                 optimized.append(action)
         
         return optimized
+    
+    def _find_common_selectors_intelligent(self, banners: List[BannerInfo], pattern_groups: List) -> Dict[str, str]:
+        """Find common selectors using intelligent pattern analysis."""
+        common_selectors = {}
+        
+        # Use pattern groups to find the best selectors
+        selector_patterns = [p for p in pattern_groups if p.pattern_type == "selector"]
+        button_patterns = [p for p in pattern_groups if p.pattern_type == "button"]
+        
+        # Find banner selectors using pattern analysis
+        banner_selectors = []
+        for banner in banners:
+            if banner.container_selector:
+                banner_selectors.append(banner.container_selector)
+        
+        if banner_selectors:
+            # Use pattern analysis to find the most reliable selector
+            best_banner_selector = self._select_best_selector(banner_selectors, selector_patterns)
+            common_selectors['banner'] = best_banner_selector
+        
+        # Find button selectors using pattern analysis
+        button_groups = {
+            'acceptButton': [],
+            'rejectButton': [],
+            'manageButton': [],
+            'closeButton': []
+        }
+        
+        for banner in banners:
+            for button in banner.buttons:
+                button_type = f"{button.button_type.value}Button"
+                if button_type in button_groups:
+                    button_groups[button_type].append(button.selector)
+        
+        # Use pattern analysis for each button type
+        for button_type, selectors in button_groups.items():
+            if selectors:
+                best_selector = self._select_best_selector(selectors, button_patterns)
+                if best_selector:
+                    common_selectors[button_type] = best_selector
+        
+        # Find overlay selectors
+        overlay_selectors = []
+        for banner in banners:
+            if banner.overlay_selectors:
+                overlay_selectors.extend(banner.overlay_selectors)
+        
+        if overlay_selectors:
+            # Use pattern analysis for overlay selectors
+            best_overlay_selector = self._select_best_selector(overlay_selectors, selector_patterns)
+            if best_overlay_selector:
+                common_selectors['overlay'] = best_overlay_selector
+        
+        return common_selectors
+    
+    def _find_common_actions_intelligent(self, banners: List[BannerInfo], pattern_groups: List) -> List[str]:
+        """Find common actions using intelligent pattern analysis."""
+        actions = []
+        
+        # Analyze button patterns to determine actions
+        button_patterns = [p for p in pattern_groups if p.pattern_type == "button"]
+        
+        # Check for accept buttons
+        accept_patterns = [p for p in button_patterns if "accept" in p.pattern_id]
+        if accept_patterns:
+            actions.append("click_accept")
+        
+        # Check for reject buttons
+        reject_patterns = [p for p in button_patterns if "decline" in p.pattern_id or "reject" in p.pattern_id]
+        if reject_patterns:
+            actions.append("click_reject")
+        
+        # Check for manage buttons
+        manage_patterns = [p for p in button_patterns if "manage" in p.pattern_id]
+        if manage_patterns:
+            actions.append("click_manage")
+        
+        # Always include basic actions
+        actions.extend(["hide_banner", "wait_for_load"])
+        
+        return actions
+    
+    def _select_best_selector(self, selectors: List[str], pattern_groups: List) -> str:
+        """Select the best selector based on pattern analysis."""
+        if not selectors:
+            return ""
+        
+        if len(selectors) == 1:
+            return selectors[0]
+        
+        # Score selectors based on pattern analysis
+        scored_selectors = []
+        
+        for selector in selectors:
+            score = 0
+            
+            # Check if selector matches any high-confidence patterns
+            for pattern_group in pattern_groups:
+                if pattern_group.confidence >= 0.8:
+                    for element in pattern_group.common_elements:
+                        if element in selector.lower():
+                            score += pattern_group.confidence * 10
+            
+            # Prefer shorter, simpler selectors
+            if len(selector) < 100:
+                score += 5
+            
+            # Prefer ID selectors over class selectors
+            if selector.startswith('#'):
+                score += 3
+            elif selector.startswith('.'):
+                score += 1
+            
+            # Avoid overly complex selectors
+            if len(selector) > 200 or selector.count(' ') > 5:
+                score -= 5
+            
+            scored_selectors.append((selector, score))
+        
+        # Return the selector with the highest score
+        if scored_selectors:
+            best_selector = max(scored_selectors, key=lambda x: x[1])
+            return best_selector[0]
+        
+        return selectors[0]
+    
+    def _calculate_pattern_confidence(self, pattern_groups: List) -> float:
+        """Calculate confidence based on pattern analysis."""
+        if not pattern_groups:
+            return 0.0
+        
+        # Calculate weighted average confidence
+        total_confidence = 0.0
+        total_weight = 0.0
+        
+        for pattern_group in pattern_groups:
+            weight = len(pattern_group.sites)  # More sites = higher weight
+            total_confidence += pattern_group.confidence * weight
+            total_weight += weight
+        
+        return total_confidence / total_weight if total_weight > 0 else 0.0
+    
+    def _generate_optimization_notes(self, pattern_groups: List) -> List[str]:
+        """Generate optimization notes based on pattern analysis."""
+        notes = []
+        
+        # Check for high-confidence patterns
+        high_confidence_count = len([p for p in pattern_groups if p.confidence >= 0.8])
+        if high_confidence_count > 0:
+            notes.append(f"Found {high_confidence_count} high-confidence patterns for reliable rule generation")
+        
+        # Check for CMP-specific patterns
+        cmp_patterns = [p for p in pattern_groups if p.pattern_type == "cmp"]
+        if cmp_patterns:
+            notes.append("CMP-specific patterns detected - rule optimized for specific consent management platform")
+        
+        # Check for common button patterns
+        button_patterns = [p for p in pattern_groups if p.pattern_type == "button"]
+        if button_patterns:
+            notes.append("Common button patterns found - rule should work across similar button implementations")
+        
+        # Check for structural patterns
+        structural_patterns = [p for p in pattern_groups if p.pattern_type == "structural"]
+        if structural_patterns:
+            notes.append("Structural patterns detected - rule optimized for similar banner layouts")
+        
+        return notes
