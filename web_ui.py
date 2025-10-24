@@ -131,8 +131,8 @@ def analyze_multiple_urls():
         if not urls:
             return jsonify({'error': 'URLs list is required'}), 400
         
-        if len(urls) > 10:
-            return jsonify({'error': 'Maximum 10 URLs allowed per batch'}), 400
+        if len(urls) > 20:
+            return jsonify({'error': 'Maximum 20 URLs allowed per batch'}), 400
         
         results = []
         banner_infos = []
@@ -1163,11 +1163,11 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     host = '0.0.0.0' if os.environ.get('PORT') else '127.0.0.1'
     
-    print("🍪 Starting CMP Mapper Web UI...")
+    print("Starting CMP Mapper Web UI...")
     print("=" * 50)
-    print(f"🌐 Web Interface: http://{host}:{port}")
-    print("📱 Mobile-friendly interface available")
-    print("🔄 Press Ctrl+C to stop the server")
+    print(f"Web Interface: http://{host}:{port}")
+    print("Mobile-friendly interface available")
+    print("Press Ctrl+C to stop the server")
     print("=" * 50)
     
     # Start the Flask app

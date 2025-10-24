@@ -56,7 +56,8 @@ class BannerDetector:
                     'cookie-policy', 'privacy-policy', 'terms-of-use',
                     'cookie-consent', 'privacy-consent', 'data-consent',
                     'cookie-accept', 'accept-cookies', 'cookie-settings',
-                    'privacy-settings', 'consent-settings', 'cookie-preferences'
+                    'privacy-settings', 'consent-settings', 'cookie-preferences',
+                    'cky-modal', 'cky-consent', 'cky-notice', 'cky-banner'  # CookieYes patterns
                 ]
             },
             'attribute_patterns': {
@@ -275,6 +276,7 @@ class BannerDetector:
             "[id*='accept']", "[class*='accept']", "[id*='decline']", "[class*='decline']",
             "[id*='settings']", "[class*='settings']", "[id*='preferences']", "[class*='preferences']",
             "[id*='policy']", "[class*='policy']", "[id*='terms']", "[class*='terms']",
+            "[class*='cky-']", "[id*='cky-']",  # CookieYes specific patterns
             ".cc-banner", ".cookie-banner", ".consent-banner", ".gdpr-banner",
             ".privacy-notice", "#cookie-notice", "#consent-notice", "#gdpr-notice",
             "[data-testid*='cookie']", "[data-testid*='consent']",
@@ -299,6 +301,14 @@ class BannerDetector:
         """Check if an element is likely a consent banner."""
         text = element.get_text().lower()
         
+        # Check if element has hidden classes but still contains banner content
+        classes = element.get('class', [])
+        is_hidden = any(cls in classes for cls in ['hide', 'hidden', 'cky-hide'])
+        
+        # If it's hidden but has banner-like content, still consider it
+        if is_hidden and self._has_banner_content(element):
+            return True
+        
         # Must contain consent-related keywords
         consent_keywords = ['cookie', 'consent', 'gdpr', 'privacy', 'tracking']
         keyword_count = sum(1 for keyword in consent_keywords if keyword in text)
@@ -317,6 +327,35 @@ class BannerDetector:
             return True
         
         return True
+    
+    def _has_banner_content(self, element: Tag) -> bool:
+        """Check if element has banner-like content even if hidden."""
+        text = element.get_text().lower()
+        
+        # Check for banner-specific content
+        banner_indicators = [
+            'cookie', 'consent', 'privacy', 'gdpr', 'accept', 'reject',
+            'manage', 'preferences', 'settings', 'we value your privacy',
+            'customise consent', 'accept all', 'reject all'
+        ]
+        
+        # Check if element contains banner indicators
+        for indicator in banner_indicators:
+            if indicator in text:
+                return True
+        
+        # Check for banner-specific classes or attributes
+        classes = element.get('class', [])
+        banner_classes = [
+            'cky-consent-container', 'cky-modal', 'cky-notice',
+            'cookie-banner', 'consent-banner', 'privacy-banner'
+        ]
+        
+        for banner_class in banner_classes:
+            if any(banner_class in cls for cls in classes):
+                return True
+        
+        return False
     
     def get_detection_summary(self, page_data: PageData) -> Dict:
         """Get a summary of detection results for a page."""

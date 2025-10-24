@@ -265,6 +265,8 @@ class RuleGenerator:
             r'c1-[a-z0-9]+\.c1-[a-z0-9]+\.c1-[a-z0-9]+',  # Multiple CSS classes
             r'\[data-tccl=.*click.*click\]',  # Complex data attributes
             r'\[data-aid=.*RENDERED.*\]',  # Complex data attributes
+            r'\.ng-tns-c\d+-\d+',  # Angular dynamic classes
+            r'\.mat-mdc-button.*\.mat-unthemed',  # Angular Material complex chains
         ]
         
         import re
@@ -314,7 +316,7 @@ class RuleGenerator:
     def _extract_simple_selector(self, complex_selector: str) -> str:
         """
         Extract a simpler selector from a complex one.
-        Specifically handles BlendRx and similar complex selectors.
+        Handles BlendRx, Angular Material, and other complex selector patterns.
         """
         import re
         
@@ -327,10 +329,31 @@ class RuleGenerator:
         if id_match:
             return f"#{id_match.group(1)}"
         
-        # Look for simple class selectors
-        class_match = re.search(r'\.([a-zA-Z][a-zA-Z0-9_-]*)', complex_selector)
-        if class_match:
-            return f".{class_match.group(1)}"
+        # Handle Angular Material Design selectors
+        if '.mdc-button' in complex_selector:
+            return '.mdc-button'
+        
+        # Handle Angular-specific classes (remove dynamic parts)
+        if '.ng-tns-c' in complex_selector:
+            # Try to find a more generic class
+            classes = complex_selector.split('.')
+            simple_classes = [cls for cls in classes if not cls.startswith('ng-tns-c') and not cls.startswith('mat-')]
+            if simple_classes:
+                return '.' + '.'.join(simple_classes[1:])  # Skip the first empty element
+        
+        # Handle Material Design classes
+        if '.mat-mdc-button' in complex_selector:
+            return '.mdc-button'
+        
+        # Look for generic button classes
+        if '.button' in complex_selector.lower():
+            return '.button'
+        
+        # Look for simple class selectors (avoid Angular/Material classes)
+        class_matches = re.findall(r'\.([a-zA-Z][a-zA-Z0-9_-]*)', complex_selector)
+        for class_name in class_matches:
+            if not class_name.startswith('ng-') and not class_name.startswith('mat-') and not class_name.startswith('cdk-'):
+                return f".{class_name}"
         
         # Look for data attributes
         data_match = re.search(r'\[data-[a-zA-Z-]+=[^\]]+\]', complex_selector)
