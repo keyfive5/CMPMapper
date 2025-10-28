@@ -136,8 +136,8 @@ def analyze_multiple_urls():
         if not urls:
             return jsonify({'error': 'URLs list is required'}), 400
         
-        if len(urls) > 10:
-            return jsonify({'error': 'Maximum 10 URLs allowed per batch'}), 400
+        if len(urls) > 20:
+            return jsonify({'error': 'Maximum 20 URLs allowed per batch'}), 400
         
         results = []
         banner_infos = []
@@ -403,6 +403,88 @@ def get_consent_o_matic_instructions():
 def get_results():
     """Get current analysis results."""
     return jsonify(current_results)
+
+@app.route('/api/troubleshooting')
+def get_troubleshooting_info():
+    """Get troubleshooting information and error statistics."""
+    try:
+        # Get error reports from the scraper
+        scraper = WebScraper()
+        error_reports = scraper.get_error_reports()
+        error_stats = scraper.get_error_statistics()
+        troubleshooting_report = scraper.get_troubleshooting_report()
+        
+        return jsonify({
+            "error_reports": [
+                {
+                    "error_type": report.error_type.value,
+                    "error_message": report.error_message,
+                    "url": report.url,
+                    "severity": report.error_severity,
+                    "suggested_fixes": report.suggested_fixes,
+                    "manual_steps": report.manual_steps,
+                    "timestamp": report.timestamp
+                }
+                for report in error_reports
+            ],
+            "error_statistics": error_stats,
+            "troubleshooting_report": troubleshooting_report
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/retry-analysis', methods=['POST'])
+def retry_analysis():
+    """Retry analysis with different strategies."""
+    try:
+        data = request.get_json()
+        url = data.get('url')
+        
+        if not url:
+            return jsonify({"error": "URL is required"}), 400
+        
+        # Create new scraper instance
+        scraper = WebScraper()
+        
+        # Try different retry strategies
+        page_data = scraper.retry_with_different_strategy(url)
+        
+        if page_data.metadata.get('error'):
+            return jsonify({
+                "success": False,
+                "error": page_data.metadata.get('error_message', 'Unknown error'),
+                "suggested_fixes": page_data.metadata.get('suggested_fixes', []),
+                "manual_steps": page_data.metadata.get('manual_steps', [])
+            })
+        
+        # If successful, proceed with analysis
+        detector = BannerDetector()
+        banner_info = detector.detect_banner(page_data)
+        
+        if banner_info:
+            generator = RuleGenerator()
+            rule = generator.generate_consent_o_matic_json(banner_info)
+            
+            return jsonify({
+                "success": True,
+                "banner_detected": True,
+                "rule": rule,
+                "banner_info": {
+                    "banner_type": banner_info.banner_type.value,
+                    "confidence": banner_info.detection_confidence,
+                    "cmp_type": banner_info.cmp_type,
+                    "button_count": len(banner_info.buttons)
+                }
+            })
+        else:
+            return jsonify({
+                "success": True,
+                "banner_detected": False,
+                "message": "No consent banner detected after retry"
+            })
+            
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 def create_templates():
     """Create HTML templates."""

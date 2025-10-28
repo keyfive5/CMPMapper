@@ -71,14 +71,43 @@ class BannerExtractor:
         try:
             soup = BeautifulSoup(html_content, 'html.parser')
             
-            # Find potential banner containers
-            banner_containers = self._find_banner_containers(soup)
+            # Find potential banner containers using multiple strategies
+            banner_containers = []
+            
+            # Standard detection
+            standard_containers = self._find_banner_containers(soup)
+            banner_containers.extend(standard_containers)
+            
+            # Shadow DOM detection
+            shadow_containers = self._detect_shadow_dom_banners(soup)
+            banner_containers.extend(shadow_containers)
+            
+            # Dynamic content detection
+            dynamic_containers = self._detect_dynamic_banners(soup)
+            banner_containers.extend(dynamic_containers)
+            
+            # Iframe detection
+            iframe_containers = self._extract_iframe_banners(soup)
+            banner_containers.extend(iframe_containers)
             
             if not banner_containers:
                 return None
             
+            # Remove duplicates and sort by relevance
+            unique_containers = []
+            seen_containers = set()
+            
+            for container in banner_containers:
+                container_id = id(container)
+                if container_id not in seen_containers:
+                    unique_containers.append(container)
+                    seen_containers.add(container_id)
+            
+            # Sort by relevance score
+            unique_containers.sort(key=lambda x: self._calculate_relevance_score(x), reverse=True)
+            
             # Analyze the most likely banner container
-            banner_container = banner_containers[0]
+            banner_container = unique_containers[0]
             
             # Extract banner type
             banner_type = self._determine_banner_type(banner_container)
@@ -231,7 +260,43 @@ class BannerExtractor:
             "[id*='modal']",
             "[id*='overlay']",
             "[id*='banner']",
-            "[id*='bar']"
+            "[id*='bar']",
+            # Shadow DOM and dynamic content patterns
+            "[class*='shadow']",
+            "[id*='shadow']",
+            "[data-shadow]",
+            "[class*='dynamic']",
+            "[id*='dynamic']",
+            "[data-dynamic]",
+            "[class*='async']",
+            "[id*='async']",
+            "[data-async]",
+            "[class*='lazy']",
+            "[id*='lazy']",
+            "[data-lazy]",
+            # WordPress specific patterns
+            "[class*='wp-gdpr']",
+            "[id*='wp-gdpr']",
+            "[class*='gdpr-cookie']",
+            "[id*='gdpr-cookie']",
+            "[class*='cookie-notice']",
+            "[id*='cookie-notice']",
+            "[class*='cookie-consent']",
+            "[id*='cookie-consent']",
+            # Wix/Squarespace patterns
+            "[class*='wix-']",
+            "[id*='wix-']",
+            "[class*='squarespace-']",
+            "[id*='squarespace-']",
+            "[data-wix]",
+            "[data-squarespace]",
+            # Custom CMP patterns
+            "[class*='cmp-']",
+            "[id*='cmp-']",
+            "[data-cmp]",
+            "[class*='consent-manager']",
+            "[id*='consent-manager']",
+            "[data-consent-manager]"
         ]
         
         for selector in selectors:
@@ -567,3 +632,107 @@ class BannerExtractor:
         confidence = min(confidence, 1.0)
         
         return confidence
+    
+    def _detect_shadow_dom_banners(self, soup: BeautifulSoup) -> List[Tag]:
+        """Detect banners in Shadow DOM elements."""
+        shadow_containers = []
+        
+        # Look for shadow DOM indicators
+        shadow_selectors = [
+            "[class*='shadow']",
+            "[id*='shadow']",
+            "[data-shadow]",
+            "template[shadowrootmode]",
+            "template[shadowroot]"
+        ]
+        
+        for selector in shadow_selectors:
+            try:
+                elements = soup.select(selector)
+                for element in elements:
+                    # Check if element contains consent-related content
+                    if self._has_consent_content(element):
+                        shadow_containers.append(element)
+            except Exception:
+                continue
+        
+        return shadow_containers
+    
+    def _detect_dynamic_banners(self, soup: BeautifulSoup) -> List[Tag]:
+        """Detect dynamically loaded banners."""
+        dynamic_containers = []
+        
+        # Look for dynamic content indicators
+        dynamic_selectors = [
+            "[class*='dynamic']",
+            "[id*='dynamic']",
+            "[data-dynamic]",
+            "[class*='async']",
+            "[id*='async']",
+            "[data-async]",
+            "[class*='lazy']",
+            "[id*='lazy']",
+            "[data-lazy]",
+            "[data-loaded='false']",
+            "[data-loaded='true']"
+        ]
+        
+        for selector in dynamic_selectors:
+            try:
+                elements = soup.select(selector)
+                for element in elements:
+                    if self._has_consent_content(element):
+                        dynamic_containers.append(element)
+            except Exception:
+                continue
+        
+        return dynamic_containers
+    
+    def _has_consent_content(self, element: Tag) -> bool:
+        """Check if element has consent-related content."""
+        text = element.get_text().lower()
+        
+        # Check for consent keywords
+        consent_keywords = ['cookie', 'consent', 'privacy', 'gdpr', 'accept', 'decline']
+        keyword_count = sum(1 for keyword in consent_keywords if keyword in text)
+        
+        if keyword_count < 1:
+            return False
+        
+        # Check for button-like elements
+        buttons = element.find_all(['button', 'a', 'input'])
+        if not buttons:
+            return False
+        
+        # Check for consent-related button text
+        for button in buttons:
+            button_text = button.get_text().lower()
+            if any(keyword in button_text for keyword in ['accept', 'agree', 'decline', 'reject', 'manage']):
+                return True
+        
+        return False
+    
+    def _extract_iframe_banners(self, soup: BeautifulSoup) -> List[Tag]:
+        """Extract banners from iframe elements."""
+        iframe_banners = []
+        
+        # Look for iframes that might contain consent banners
+        iframes = soup.find_all('iframe')
+        
+        for iframe in iframes:
+            src = iframe.get('src', '')
+            title = iframe.get('title', '')
+            name = iframe.get('name', '')
+            
+            # Check if iframe might contain consent content
+            iframe_indicators = ['consent', 'cookie', 'privacy', 'gdpr', 'banner']
+            if any(indicator in (src + title + name).lower() for indicator in iframe_indicators):
+                iframe_banners.append(iframe)
+        
+        return iframe_banners
+    
+    def _wait_for_dynamic_content(self, soup: BeautifulSoup) -> BeautifulSoup:
+        """Simulate waiting for dynamic content to load."""
+        # This is a placeholder for future implementation
+        # In a real implementation, this would use Selenium to wait for elements
+        return soup

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cavi-au/Consent-O-Matic/master/rules.schema.json",
+  "fauquierstrickland.com CMP": {
+    "detectors": [
+      {
+        "presentMatcher": [
+          {
+            "type": "css",
+            "target": {
+              "selector": ".show--consent"
+            }
+          }
+        ],
+        "showingMatcher": [
+          {
+            "type": "css",
+            "target": {
+              "selector": ".show--consent"
+            }
+          }
+        ]
+      }
+    ],
+    "methods": [
+      {
+        "name": "HIDE_CMP"
+      },
+      {
+        "name": "OPEN_OPTIONS"
+      },
+      {
+        "action": {
+          "type": "click",
+          "target": {
+            "selector": ".mdc-button"
+          }
+        },
+        "name": "DO_CONSENT"
+      },
+      {
+        "name": "SAVE_CONSENT"
+      },
+      {
+        "name": "UTILITY"
+      }
+    ]
+  }
+}

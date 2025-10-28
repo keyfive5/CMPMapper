@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<<<<<<< HEAD
     <title>CMP Mapper - Cookie Consent Banner Detector</title>
     <style>
         body {
@@ -75,11 +76,178 @@
             color: #155724;
             background: #d4edda;
             border-left-color: #28a745;
+=======
+    <title>CMP Mapper - Simplified</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 2.5rem;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .title {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 1.5rem;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .input-group input,
+        .input-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .input-group input:focus,
+        .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        
+        .btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-align: left;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+>>>>>>> ba806912a2f8fee8d669c366c23e0ea5f77285e4
         }
     </style>
 </head>
 <body>
     <div class="container">
+<<<<<<< HEAD
         <h1>🍪 CMP Mapper - Cookie Consent Banner Detector</h1>
         
         <div class="input-group">
@@ -104,10 +272,111 @@
                 <li>View the detected banner information</li>
                 <li>Download the generated Consent O Matic rule</li>
             </ol>
+=======
+        <div class="logo">
+            <i class="fas fa-cookie-bite"></i> CMP Mapper
+        </div>
+        <h1 class="title">Automated Cookie Consent Banner Detection</h1>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('single')">
+                <i class="fas fa-link"></i> Single URL
+            </button>
+            <button class="tab" onclick="switchTab('multiple')">
+                <i class="fas fa-globe"></i> Multiple URLs
+            </button>
+            <button class="tab" onclick="switchTab('samples')">
+                <i class="fas fa-globe"></i> Sample Websites
+            </button>
+        </div>
+        
+        <div id="single-tab" class="tab-content active">
+            <div class="input-group">
+                <label for="url-input">
+                    <i class="fas fa-globe"></i> Website URL
+                </label>
+                <input type="url" id="url-input" placeholder="https://example.com" value="https://example.com">
+            </div>
+            <button class="btn" onclick="analyzeSingle()">
+                <i class="fas fa-search"></i> Analyze Website
+            </button>
+        </div>
+        
+        <div id="multiple-tab" class="tab-content">
+            <div class="input-group">
+                <label for="multiple-urls-input">
+                    <i class="fas fa-list"></i> Multiple URLs (one per line)
+                </label>
+                <textarea id="multiple-urls-input" rows="6" placeholder="https://example1.com&#10;https://example2.com&#10;https://example3.com"></textarea>
+            </div>
+            <button class="btn" onclick="analyzeMultiple()">
+                <i class="fas fa-search"></i> Analyze All Websites
+            </button>
+            <button class="btn btn-secondary" onclick="generateMultiSiteRule()">
+                <i class="fas fa-cogs"></i> Generate Multi-Site Rule
+            </button>
+        </div>
+        
+        <div id="samples-tab" class="tab-content">
+            <h3>Sample Websites (No Consent Banners)</h3>
+            <p>These websites are known to have no cookie consent banners. Use them to test that CMP Mapper correctly identifies "no banner detected" for all of them.</p>
+            
+            <div class="sample-categories">
+                <div class="category-section">
+                    <h4>🏛️ Government Websites</h4>
+                    <div class="website-list">
+                        <div class="website-item" onclick="addToMultipleUrls('https://www.whitehouse.gov')">
+                            <i class="fas fa-flag-usa"></i> whitehouse.gov
+                        </div>
+                        <div class="website-item" onclick="addToMultipleUrls('https://www.canada.ca')">
+                            <i class="fas fa-flag"></i> canada.ca
+                        </div>
+                        <div class="website-item" onclick="addToMultipleUrls('https://www.gov.uk')">
+                            <i class="fas fa-flag"></i> gov.uk
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="category-section">
+                    <h4>🎓 Educational Institutions</h4>
+                    <div class="website-list">
+                        <div class="website-item" onclick="addToMultipleUrls('https://www.mit.edu')">
+                            <i class="fas fa-graduation-cap"></i> mit.edu
+                        </div>
+                        <div class="website-item" onclick="addToMultipleUrls('https://www.harvard.edu')">
+                            <i class="fas fa-graduation-cap"></i> harvard.edu
+                        </div>
+                        <div class="website-item" onclick="addToMultipleUrls('https://www.stanford.edu')">
+                            <i class="fas fa-graduation-cap"></i> stanford.edu
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="quick-actions">
+                <button class="btn" onclick="loadAllSampleWebsites()">
+                    <i class="fas fa-download"></i> Load All Sample Websites
+                </button>
+                <button class="btn btn-secondary" onclick="clearMultipleUrls()">
+                    <i class="fas fa-trash"></i> Clear All
+                </button>
+            </div>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <h3>Analyzing consent banner...</h3>
+            <p>Please wait while we analyze the website...</p>
+        </div>
+        
+        <div class="results" id="results">
+            <!-- Results will be populated here -->
+>>>>>>> ba806912a2f8fee8d669c366c23e0ea5f77285e4
         </div>
     </div>
 
     <script>
+<<<<<<< HEAD
         async function analyzeUrl() {
             const url = document.getElementById('url-input').value.trim();
             if (!url) {
@@ -120,6 +389,57 @@
             
             loading.style.display = 'block';
             result.style.display = 'none';
+=======
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+        
+        function showError(message) {
+            hideLoading();
+            document.getElementById('results').innerHTML = `
+                <div class="error">
+                    <i class="fas fa-exclamation-triangle"></i> ${message}
+                </div>
+            `;
+        }
+        
+        function showSuccess(message) {
+            hideLoading();
+            document.getElementById('results').innerHTML = `
+                <div class="success">
+                    <i class="fas fa-check-circle"></i> ${message}
+                </div>
+            `;
+        }
+        
+        async function analyzeSingle() {
+            const url = document.getElementById('url-input').value.trim();
+            if (!url) {
+                showError('Please enter a URL to analyze');
+                return;
+            }
+            
+            showLoading();
+>>>>>>> ba806912a2f8fee8d669c366c23e0ea5f77285e4
             
             try {
                 const response = await fetch('/api/analyze', {
@@ -131,6 +451,7 @@
                 });
                 
                 const data = await response.json();
+<<<<<<< HEAD
                 loading.style.display = 'none';
                 
                 if (data.success) {
@@ -183,6 +504,165 @@
                 showResult(`<h3>❌ Download Error</h3><p>${error.message}</p>`, 'error');
             }
         }
+=======
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+                
+                showResults(data);
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+        
+        async function analyzeMultiple() {
+            const urlsText = document.getElementById('multiple-urls-input').value.trim();
+            if (!urlsText) {
+                showError('Please enter URLs to analyze');
+                return;
+            }
+            
+            const urls = urlsText.split('\n').map(url => url.trim()).filter(url => url);
+            if (urls.length === 0) {
+                showError('Please enter valid URLs');
+                return;
+            }
+            
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/analyze-multiple', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ urls: urls })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+                
+                showMultipleResults(data);
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+        
+        function showResults(data) {
+            hideLoading();
+            
+            if (data.banner_detected) {
+                document.getElementById('results').innerHTML = `
+                    <div class="success">
+                        <h3><i class="fas fa-check-circle"></i> Consent Banner Detected!</h3>
+                        <p><strong>Site:</strong> ${data.site}</p>
+                        <p><strong>Confidence:</strong> ${data.confidence}%</p>
+                        <p><strong>Container Selector:</strong> <code>${data.rule.selectors.container}</code></p>
+                        <p><strong>Accept Button:</strong> <code>${data.rule.selectors.accept_button}</code></p>
+                        <button class="btn" onclick="downloadRule('${data.site}')">
+                            <i class="fas fa-download"></i> Download Rule
+                        </button>
+                    </div>
+                `;
+            } else {
+                document.getElementById('results').innerHTML = `
+                    <div class="error">
+                        <h3><i class="fas fa-times-circle"></i> No Consent Banner Detected</h3>
+                        <p>No cookie consent banner was found on this page.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function showMultipleResults(data) {
+            hideLoading();
+            
+            let html = '<h3>Multiple Site Analysis Results</h3>';
+            
+            data.results.forEach((result, index) => {
+                const status = result.banner_detected ? 
+                    '<span style="color: green;">✅ Banner Found</span>' : 
+                    '<span style="color: red;">❌ No Banner</span>';
+                
+                html += `
+                    <div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        <strong>${result.site}</strong> - ${status}
+                        ${result.banner_detected ? `<br><small>Confidence: ${result.confidence}%</small>` : ''}
+                    </div>
+                `;
+            });
+            
+            if (data.multi_site_rule) {
+                html += `
+                    <div style="margin-top: 20px;">
+                        <button class="btn" onclick="downloadMultiSiteRule()">
+                            <i class="fas fa-download"></i> Download Multi-Site Rule
+                        </button>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('results').innerHTML = html;
+        }
+        
+        function downloadRule(site) {
+            window.location.href = `/api/download-rule?site=${encodeURIComponent(site)}`;
+        }
+        
+        function downloadMultiSiteRule() {
+            window.location.href = '/api/download-multi-site-rule';
+        }
+        
+        // Sample websites functions
+        function addToMultipleUrls(url) {
+            const textarea = document.getElementById('multiple-urls-input');
+            if (textarea.value.trim()) {
+                textarea.value += '\n' + url;
+            } else {
+                textarea.value = url;
+            }
+            switchTab('multiple');
+            showNotification(`Added ${url} to Multiple URLs`, 'success');
+        }
+        
+        function loadAllSampleWebsites() {
+            const sampleWebsites = [
+                'https://www.whitehouse.gov',
+                'https://www.canada.ca',
+                'https://www.gov.uk',
+                'https://www.usa.gov',
+                'https://www.health.gov',
+                'https://www.mit.edu',
+                'https://www.harvard.edu',
+                'https://www.stanford.edu',
+                'https://www.berkeley.edu',
+                'https://www.caltech.edu'
+            ];
+            
+            const textarea = document.getElementById('multiple-urls-input');
+            textarea.value = sampleWebsites.join('\n');
+            switchTab('multiple');
+            showNotification(`Loaded ${sampleWebsites.length} sample websites`, 'success');
+        }
+        
+        function clearMultipleUrls() {
+            document.getElementById('multiple-urls-input').value = '';
+            showNotification('Cleared all URLs', 'info');
+        }
+        
+        function showNotification(message, type = 'info') {
+            // Simple notification - you can enhance this later
+            console.log(`${type.toUpperCase()}: ${message}`);
+        }
+        
+        async function generateMultiSiteRule() {
+            showError('Multi-site rule generation not implemented in simplified version');
+        }
+>>>>>>> ba806912a2f8fee8d669c366c23e0ea5f77285e4
     </script>
 </body>
 </html>

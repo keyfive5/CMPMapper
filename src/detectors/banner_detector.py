@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup, Tag
 
 from ..models import PageData, BannerInfo, BannerType, ButtonType
 from ..extractors import BannerExtractor, ButtonExtractor, SelectorExtractor
+from .cmp_fingerprinter import CMPFingerprinter
 
 
 class BannerDetector:
@@ -18,6 +19,7 @@ class BannerDetector:
         self.banner_extractor = BannerExtractor()
         self.button_extractor = ButtonExtractor()
         self.selector_extractor = SelectorExtractor()
+        self.cmp_fingerprinter = CMPFingerprinter()
         
         # Detection patterns and weights
         self.patterns = self._initialize_patterns()
@@ -56,7 +58,8 @@ class BannerDetector:
                     'cookie-policy', 'privacy-policy', 'terms-of-use',
                     'cookie-consent', 'privacy-consent', 'data-consent',
                     'cookie-accept', 'accept-cookies', 'cookie-settings',
-                    'privacy-settings', 'consent-settings', 'cookie-preferences'
+                    'privacy-settings', 'consent-settings', 'cookie-preferences',
+                    'cky-modal', 'cky-consent', 'cky-notice', 'cky-banner'  # CookieYes patterns
                 ]
             },
             'attribute_patterns': {
@@ -81,6 +84,9 @@ class BannerDetector:
             BannerInfo object if banner detected, None otherwise
         """
         try:
+            # First, try to identify CMP type for enhanced detection
+            cmp_name, cmp_confidence, cmp_indicators = self.cmp_fingerprinter.identify_cmp_type(page_data)
+            
             # Extract banner information
             banner_info = self.banner_extractor.extract_banner_info(
                 page_data.html_content, 
@@ -88,10 +94,20 @@ class BannerDetector:
             )
             
             if not banner_info:
-                return None
+                # If no banner found with standard extraction, try CMP-specific detection
+                if cmp_confidence > 0.3:
+                    banner_info = self._detect_cmp_specific_banner(page_data, cmp_name, cmp_indicators)
+                
+                if not banner_info:
+                    return None
             
             # Enhance detection with additional analysis
             enhanced_info = self._enhance_detection(banner_info, page_data)
+            
+            # Add CMP information to banner info
+            enhanced_info.cmp_type = cmp_name
+            enhanced_info.cmp_confidence = cmp_confidence
+            enhanced_info.cmp_indicators = cmp_indicators
             
             # Calculate final confidence score
             final_confidence = self._calculate_final_confidence(enhanced_info, page_data)
@@ -275,6 +291,7 @@ class BannerDetector:
             "[id*='accept']", "[class*='accept']", "[id*='decline']", "[class*='decline']",
             "[id*='settings']", "[class*='settings']", "[id*='preferences']", "[class*='preferences']",
             "[id*='policy']", "[class*='policy']", "[id*='terms']", "[class*='terms']",
+            "[class*='cky-']", "[id*='cky-']",  # CookieYes specific patterns
             ".cc-banner", ".cookie-banner", ".consent-banner", ".gdpr-banner",
             ".privacy-notice", "#cookie-notice", "#consent-notice", "#gdpr-notice",
             "[data-testid*='cookie']", "[data-testid*='consent']",
@@ -299,6 +316,14 @@ class BannerDetector:
         """Check if an element is likely a consent banner."""
         text = element.get_text().lower()
         
+        # Check if element has hidden classes but still contains banner content
+        classes = element.get('class', [])
+        is_hidden = any(cls in classes for cls in ['hide', 'hidden', 'cky-hide'])
+        
+        # If it's hidden but has banner-like content, still consider it
+        if is_hidden and self._has_banner_content(element):
+            return True
+        
         # Must contain consent-related keywords
         consent_keywords = ['cookie', 'consent', 'gdpr', 'privacy', 'tracking']
         keyword_count = sum(1 for keyword in consent_keywords if keyword in text)
@@ -317,6 +342,35 @@ class BannerDetector:
             return True
         
         return True
+    
+    def _has_banner_content(self, element: Tag) -> bool:
+        """Check if element has banner-like content even if hidden."""
+        text = element.get_text().lower()
+        
+        # Check for banner-specific content
+        banner_indicators = [
+            'cookie', 'consent', 'privacy', 'gdpr', 'accept', 'reject',
+            'manage', 'preferences', 'settings', 'we value your privacy',
+            'customise consent', 'accept all', 'reject all'
+        ]
+        
+        # Check if element contains banner indicators
+        for indicator in banner_indicators:
+            if indicator in text:
+                return True
+        
+        # Check for banner-specific classes or attributes
+        classes = element.get('class', [])
+        banner_classes = [
+            'cky-consent-container', 'cky-modal', 'cky-notice',
+            'cookie-banner', 'consent-banner', 'privacy-banner'
+        ]
+        
+        for banner_class in banner_classes:
+            if any(banner_class in cls for cls in classes):
+                return True
+        
+        return False
     
     def get_detection_summary(self, page_data: PageData) -> Dict:
         """Get a summary of detection results for a page."""
@@ -352,3 +406,191 @@ class BannerDetector:
             print(f"Error generating detection summary: {e}")
         
         return summary
+    
+    def _detect_cmp_specific_banner(self, page_data: PageData, cmp_name: str, indicators: List[str]) -> Optional[BannerInfo]:
+        """Detect banner using CMP-specific patterns."""
+        try:
+            soup = BeautifulSoup(page_data.html_content, 'html.parser')
+            
+            # Get CMP characteristics for targeted detection
+            cmp_characteristics = self.cmp_fingerprinter.get_cmp_characteristics(cmp_name)
+            
+            if not cmp_characteristics:
+                return None
+            
+            # Try CMP-specific selectors
+            for selector in cmp_characteristics.get('common_selectors', []):
+                elements = soup.select(selector)
+                for element in elements:
+                    if self._is_likely_banner(element):
+                        # Extract banner info using CMP-specific patterns
+                        banner_info = self._extract_cmp_banner_info(element, page_data.url, cmp_name)
+                        if banner_info:
+                            return banner_info
+            
+            return None
+            
+        except Exception as e:
+            print(f"Error in CMP-specific detection: {e}")
+            return None
+    
+    def _extract_cmp_banner_info(self, element: Tag, url: str, cmp_name: str) -> Optional[BannerInfo]:
+        """Extract banner info using CMP-specific patterns."""
+        try:
+            # Create basic banner info
+            banner_info = BannerInfo(
+                site=url,
+                container_selector=self._generate_selector(element),
+                banner_type=self._detect_banner_type(element),
+                detection_confidence=0.7,  # Higher confidence for CMP-specific detection
+                buttons=[],
+                overlay_selectors=[],
+                additional_selectors={},
+                cmp_type=cmp_name,
+                cmp_confidence=0.8,
+                cmp_indicators=[]
+            )
+            
+            # Extract buttons using CMP-specific patterns
+            buttons = self._extract_cmp_buttons(element, cmp_name)
+            banner_info.buttons = buttons
+            
+            # Extract overlay selectors
+            overlay_selectors = self._extract_overlay_selectors(element)
+            banner_info.overlay_selectors = overlay_selectors
+            
+            return banner_info
+            
+        except Exception as e:
+            print(f"Error extracting CMP banner info: {e}")
+            return None
+    
+    def _extract_cmp_buttons(self, element: Tag, cmp_name: str) -> List:
+        """Extract buttons using CMP-specific patterns."""
+        buttons = []
+        
+        try:
+            # Get CMP-specific button patterns
+            cmp_characteristics = self.cmp_fingerprinter.get_cmp_characteristics(cmp_name)
+            button_patterns = cmp_characteristics.get('button_patterns', [])
+            
+            # Find buttons using CMP-specific selectors
+            for pattern in button_patterns:
+                button_elements = element.select(pattern)
+                for btn_element in button_elements:
+                    button_info = self._create_button_info(btn_element)
+                    if button_info:
+                        buttons.append(button_info)
+            
+            # Fallback to generic button detection
+            if not buttons:
+                generic_buttons = element.find_all(['button', 'a', 'input'])
+                for btn_element in generic_buttons:
+                    button_info = self._create_button_info(btn_element)
+                    if button_info:
+                        buttons.append(button_info)
+            
+            return buttons
+            
+        except Exception as e:
+            print(f"Error extracting CMP buttons: {e}")
+            return []
+    
+    def _create_button_info(self, element: Tag):
+        """Create button info from element."""
+        try:
+            from ..models import ConsentButton, ButtonType
+            
+            text = element.get_text(strip=True)
+            selector = self._generate_selector(element)
+            
+            # Determine button type based on text
+            button_type = self._classify_button_type(text)
+            
+            return ConsentButton(
+                text=text,
+                selector=selector,
+                button_type=button_type,
+                attributes=dict(element.attrs)
+            )
+            
+        except Exception as e:
+            print(f"Error creating button info: {e}")
+            return None
+    
+    def _classify_button_type(self, text: str) -> ButtonType:
+        """Classify button type based on text content."""
+        text_lower = text.lower()
+        
+        if any(word in text_lower for word in ['accept', 'agree', 'allow', 'ok', 'continue', 'proceed']):
+            return ButtonType.ACCEPT
+        elif any(word in text_lower for word in ['decline', 'reject', 'deny', 'block', 'refuse']):
+            return ButtonType.REJECT
+        elif any(word in text_lower for word in ['manage', 'preferences', 'settings', 'customize', 'choose']):
+            return ButtonType.MANAGE
+        elif any(word in text_lower for word in ['save', 'confirm', 'apply', 'update']):
+            return ButtonType.SAVE
+        else:
+            return ButtonType.OTHER
+    
+    def _detect_banner_type(self, element: Tag) -> BannerType:
+        """Detect banner type based on element characteristics."""
+        # Check for modal indicators
+        if element.get('role') == 'dialog' or 'modal' in str(element.get('class', [])).lower():
+            return BannerType.MODAL
+        
+        # Check for fixed positioning
+        style = element.get('style', '')
+        if 'position: fixed' in style or 'position: absolute' in style:
+            return BannerType.BOTTOM_BAR
+        
+        # Check for overlay indicators
+        if 'overlay' in str(element.get('class', [])).lower():
+            return BannerType.OVERLAY
+        
+        return BannerType.BANNER
+    
+    def _extract_overlay_selectors(self, element: Tag) -> List[str]:
+        """Extract overlay selector patterns."""
+        selectors = []
+        
+        # Look for overlay-related classes
+        classes = element.get('class', [])
+        for cls in classes:
+            if any(keyword in cls.lower() for keyword in ['overlay', 'modal', 'backdrop', 'mask']):
+                selectors.append(f".{cls}")
+        
+        # Look for z-index styling
+        style = element.get('style', '')
+        if 'z-index' in style:
+            selectors.append(f"[style*='z-index']")
+        
+        return selectors
+    
+    def _generate_selector(self, element: Tag) -> str:
+        """Generate CSS selector for element."""
+        try:
+            # Try ID first
+            if element.get('id'):
+                return f"#{element.get('id')}"
+            
+            # Try class combination
+            classes = element.get('class', [])
+            if classes:
+                class_selector = '.' + '.'.join(classes)
+                return class_selector
+            
+            # Fallback to tag with attributes
+            tag = element.name
+            attrs = []
+            for attr, value in element.attrs.items():
+                if attr in ['data-testid', 'data-cy', 'aria-label']:
+                    attrs.append(f'[{attr}="{value}"]')
+            
+            if attrs:
+                return f"{tag}{''.join(attrs)}"
+            
+            return tag
+            
+        except Exception:
+            return element.name or 'div'

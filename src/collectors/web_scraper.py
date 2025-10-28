@@ -19,6 +19,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
 
 from ..models import PageData
+from ..utils.error_handler import ErrorHandler, ErrorType, ErrorReport
 
 
 class WebScraper:
@@ -35,6 +36,8 @@ class WebScraper:
         self.headless = headless
         self.timeout = timeout
         self.driver = None
+        self.error_handler = ErrorHandler()
+        self.error_reports = []
         self._setup_driver()
     
     def _setup_driver(self):
@@ -92,10 +95,34 @@ class WebScraper:
         Returns:
             PageData object with collected information
         """
-        if self.driver:
-            return self._collect_with_selenium(url, wait_for_banner)
-        else:
-            return self._collect_with_requests(url)
+        try:
+            if self.driver:
+                return self._collect_with_selenium(url, wait_for_banner)
+            else:
+                return self._collect_with_requests(url)
+        except Exception as e:
+            # Handle errors and provide troubleshooting information
+            error_report = self.error_handler.handle_scraping_error(e, url, {
+                'wait_for_banner': wait_for_banner,
+                'driver_available': self.driver is not None
+            })
+            self.error_reports.append(error_report)
+            self.error_handler.log_error(error_report)
+            
+            # Return error page data with troubleshooting info
+            return PageData(
+                url=url,
+                html_content="",
+                collected_at=datetime.now().isoformat(),
+                metadata={
+                    'error': True,
+                    'error_type': error_report.error_type.value,
+                    'error_message': error_report.error_message,
+                    'suggested_fixes': error_report.suggested_fixes,
+                    'manual_steps': error_report.manual_steps,
+                    'error_severity': error_report.error_severity
+                }
+            )
     
     def _collect_with_selenium(self, url: str, wait_for_banner: bool = True) -> PageData:
         """Collect page data using Selenium."""
@@ -325,3 +352,96 @@ class WebScraper:
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
+    
+    def get_error_reports(self) -> List[ErrorReport]:
+        """Get all error reports from scraping attempts."""
+        return self.error_reports
+    
+    def get_error_statistics(self) -> Dict[str, Any]:
+        """Get error statistics and troubleshooting information."""
+        return self.error_handler.get_error_statistics(self.error_reports)
+    
+    def get_troubleshooting_report(self) -> Dict[str, Any]:
+        """Get comprehensive troubleshooting report."""
+        return self.error_handler.create_troubleshooting_report(self.error_reports)
+    
+    def clear_error_reports(self):
+        """Clear all error reports."""
+        self.error_reports = []
+    
+    def retry_with_different_strategy(self, url: str) -> PageData:
+        """Retry scraping with different strategies based on error patterns."""
+        error_stats = self.get_error_statistics()
+        
+        if error_stats.get('by_type', {}).get('bot_detection', 0) > 0:
+            # Try with different user agent and settings
+            return self._retry_with_bot_avoidance(url)
+        elif error_stats.get('by_type', {}).get('timeout_error', 0) > 0:
+            # Try with longer timeout
+            return self._retry_with_extended_timeout(url)
+        elif error_stats.get('by_type', {}).get('network_error', 0) > 0:
+            # Try with requests instead of Selenium
+            return self._retry_with_requests(url)
+        else:
+            # Default retry
+            return self.collect_page(url)
+    
+    def _retry_with_bot_avoidance(self, url: str) -> PageData:
+        """Retry with enhanced bot avoidance techniques."""
+        try:
+            # Update user agent
+            self.driver.execute_cdp_cmd('Network.setUserAgentOverride', {
+                "userAgent": 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+            })
+            
+            # Add random delay
+            time.sleep(2)
+            
+            return self.collect_page(url)
+        except Exception as e:
+            error_report = self.error_handler.handle_scraping_error(e, url, {'retry_strategy': 'bot_avoidance'})
+            self.error_reports.append(error_report)
+            return PageData(
+                url=url,
+                html_content="",
+                collected_at=datetime.now().isoformat(),
+                metadata={'error': True, 'retry_failed': True, 'error_message': str(e)}
+            )
+    
+    def _retry_with_extended_timeout(self, url: str) -> PageData:
+        """Retry with extended timeout."""
+        try:
+            original_timeout = self.timeout
+            self.timeout = 60  # Double the timeout
+            self.driver.set_page_load_timeout(self.timeout)
+            
+            result = self.collect_page(url)
+            
+            # Restore original timeout
+            self.timeout = original_timeout
+            self.driver.set_page_load_timeout(self.timeout)
+            
+            return result
+        except Exception as e:
+            error_report = self.error_handler.handle_scraping_error(e, url, {'retry_strategy': 'extended_timeout'})
+            self.error_reports.append(error_report)
+            return PageData(
+                url=url,
+                html_content="",
+                collected_at=datetime.now().isoformat(),
+                metadata={'error': True, 'retry_failed': True, 'error_message': str(e)}
+            )
+    
+    def _retry_with_requests(self, url: str) -> PageData:
+        """Retry using requests instead of Selenium."""
+        try:
+            return self._collect_with_requests(url)
+        except Exception as e:
+            error_report = self.error_handler.handle_scraping_error(e, url, {'retry_strategy': 'requests_fallback'})
+            self.error_reports.append(error_report)
+            return PageData(
+                url=url,
+                html_content="",
+                collected_at=datetime.now().isoformat(),
+                metadata={'error': True, 'retry_failed': True, 'error_message': str(e)}
+            )

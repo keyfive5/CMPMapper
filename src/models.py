@@ -41,9 +41,13 @@ class BannerInfo(BaseModel):
     container_selector: str
     buttons: List[ConsentButton]
     overlay_selectors: List[str] = Field(default_factory=list)
-    html_content: str
+    html_content: str = ""
     detection_confidence: float = Field(ge=0.0, le=1.0)
     additional_selectors: Dict[str, str] = Field(default_factory=dict)
+    # CMP-specific fields
+    cmp_type: Optional[str] = None
+    cmp_confidence: float = Field(ge=0.0, le=1.0, default=0.0)
+    cmp_indicators: List[str] = Field(default_factory=list)
 
 
 class ConsentRule(BaseModel):
