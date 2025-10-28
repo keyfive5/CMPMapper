@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMP Mapper - Cookie Consent Banner Detector</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+        .success {
+            color: #155724;
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍪 CMP Mapper - Cookie Consent Banner Detector</h1>
+        
+        <div class="input-group">
+            <label for="url-input">Website URL:</label>
+            <input type="text" id="url-input" placeholder="https://example.com" />
+        </div>
+        
+        <button onclick="analyzeUrl()">Analyze Website</button>
+        
+        <div class="loading" id="loading">
+            <p>Analyzing website...</p>
+        </div>
+        
+        <div id="result" class="result" style="display:none;"></div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            <h3>How to use:</h3>
+            <ol>
+                <li>Enter a website URL above</li>
+                <li>Click "Analyze Website"</li>
+                <li>Wait for the analysis to complete</li>
+                <li>View the detected banner information</li>
+                <li>Download the generated Consent O Matic rule</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        async function analyzeUrl() {
+            const url = document.getElementById('url-input').value.trim();
+            if (!url) {
+                showResult('Please enter a URL', 'error');
+                return;
+            }
+            
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            
+            loading.style.display = 'block';
+            result.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+                
+                const data = await response.json();
+                loading.style.display = 'none';
+                
+                if (data.success) {
+                    if (data.banner_info) {
+                        showResult(`
+                            <h3>✅ Banner Detected!</h3>
+                            <p><strong>Confidence:</strong> ${data.banner_info.confidence}</p>
+                            <p><strong>Banner Type:</strong> ${data.banner_info.banner_type || 'Unknown'}</p>
+                            <p><strong>Buttons Found:</strong> ${data.banner_info.buttons.length}</p>
+                            <p><strong>Container:</strong> ${data.banner_info.container_selector || 'Unknown'}</p>
+                            <br>
+                            <button onclick="downloadRule()">Download Consent O Matic Rule</button>
+                        `, 'success');
+                    } else {
+                        showResult('<h3>❌ No Banner Detected</h3><p>No consent banner found on this page.</p>', 'error');
+                    }
+                } else {
+                    showResult(`<h3>❌ Analysis Failed</h3><p>${data.error || 'Unknown error'}</p>`, 'error');
+                }
+            } catch (error) {
+                loading.style.display = 'none';
+                showResult(`<h3>❌ Error</h3><p>${error.message}</p>`, 'error');
+            }
+        }
+        
+        function showResult(content, type) {
+            const result = document.getElementById('result');
+            result.innerHTML = content;
+            result.className = `result ${type}`;
+            result.style.display = 'block';
+        }
+        
+        async function downloadRule() {
+            try {
+                const response = await fetch('/api/download-rule');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'consent_rule.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                } else {
+                    showResult('<h3>❌ Download Failed</h3><p>No rule available to download.</p>', 'error');
+                }
+            } catch (error) {
+                showResult(`<h3>❌ Download Error</h3><p>${error.message}</p>`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
