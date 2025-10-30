@@ -181,18 +181,50 @@ def index():
                 const loading = document.getElementById('loading');
                 
                 loading.style.display = 'block';
-                result.style.display = 'none';
+                result.style.display = 'block';
                 
                 let resultsHTML = '<h3>Test Results for All 4 Sites</h3>';
+                let startTime = Date.now();
+                const totalDuration = 40000; // 40 seconds total
                 
                 for (let i = 0; i < sites.length; i++) {
                     const site = sites[i];
+                    const siteStartTime = Date.now();
+                    
                     resultsHTML += `<hr><h4>${i + 1}. ${site.name}</h4>`;
                     resultsHTML += `<p>URL: ${site.url}</p>`;
-                    resultsHTML += '<p>Analyzing...</p>';
+                    resultsHTML += `
+                        <div style="background: #e0e0e0; height: 25px; border-radius: 12px; overflow: hidden; position: relative; margin: 10px 0;">
+                            <div id="progress-${i}" style="background: linear-gradient(90deg, #28a745, #20c997); height: 100%; width: 0%; transition: width 0.3s ease; border-radius: 12px;"></div>
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: bold;">Loading...</div>
+                        </div>
+                        <p id="eta-${i}" style="text-align: center; color: #666; font-size: 12px;">Analyzing... ETA: ~10s</p>
+                    `;
                     
                     result.innerHTML = resultsHTML;
                     result.style.display = 'block';
+                    
+                    // Simulate progress
+                    const progressSteps = [
+                        { progress: 25, text: 'Scraping website...', eta: 8 },
+                        { progress: 50, text: 'Analyzing HTML...', eta: 6 },
+                        { progress: 75, text: 'Detecting banner...', eta: 3 },
+                        { progress: 95, text: 'Generating rule...', eta: 1 }
+                    ];
+                    
+                    let stepIndex = 0;
+                    const progressInterval = setInterval(() => {
+                        if (stepIndex < progressSteps.length) {
+                            const step = progressSteps[stepIndex];
+                            const progressBar = document.getElementById(`progress-${i}`);
+                            const etaText = document.getElementById(`eta-${i}`);
+                            if (progressBar && etaText) {
+                                progressBar.style.width = step.progress + '%';
+                                etaText.textContent = `${step.text} ETA: ~${step.eta}s`;
+                            }
+                            stepIndex++;
+                        }
+                    }, 2000);
                     
                     try {
                         const response = await fetch('/api/test', {
@@ -201,38 +233,77 @@ def index():
                             body: JSON.stringify({ url: site.url })
                         });
                         
+                        clearInterval(progressInterval);
+                        
+                        const progressBar = document.getElementById(`progress-${i}`);
+                        const etaText = document.getElementById(`eta-${i}`);
+                        if (progressBar) progressBar.style.width = '100%';
+                        if (etaText) etaText.textContent = 'Analysis complete!';
+                        
                         const data = await response.json();
                         
                         if (data.success && data.banner_detected && data.rule) {
-                            resultsHTML = resultsHTML.replace(`<p>Analyzing...</p>`, `
-                                <p style="color: green;">✅ Banner Detected (Confidence: ${(data.confidence * 100).toFixed(1)}%)</p>
+                            const etaUpdate = document.getElementById(`eta-${i}`);
+                            const replaceHTML = `
+                                <div style="background: #e0e0e0; height: 25px; border-radius: 12px; overflow: hidden; position: relative; margin: 10px 0;">
+                                    <div style="background: #28a745; height: 100%; width: 100%; border-radius: 12px;"></div>
+                                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: bold; color: white;">Complete!</div>
+                                </div>
+                                <p style="color: green; font-weight: bold;">✅ Banner Detected (Confidence: ${(data.confidence * 100).toFixed(1)}%)</p>
                                 <p>Banner Type: ${data.banner_type}</p>
                                 <p>Buttons Found: ${data.buttons_count}</p>
-                            `);
+                                <button onclick="downloadRule()" style="background: #28a745; margin: 10px 0; padding: 8px 15px; color: white; border: none; border-radius: 5px; cursor: pointer;">⬇️ Download rules.json</button>
+                                <details style="margin-top: 10px;">
+                                    <summary style="cursor: pointer; color: #007bff; font-weight: bold;">📋 View Generated Rule JSON</summary>
+                                    <pre style="background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 10px;">${JSON.stringify(data.rule, null, 2)}</pre>
+                                </details>
+                            `;
+                            resultsHTML = resultsHTML.replace(`<div style="background: #e0e0e0; height: 25px`, replaceHTML);
                         } else if (data.success && data.banner_detected) {
-                            resultsHTML = resultsHTML.replace(`<p>Analyzing...</p>`, `
+                            const replaceHTML = `
+                                <div style="background: #e0e0e0; height: 25px; border-radius: 12px; overflow: hidden; position: relative; margin: 10px 0;">
+                                    <div style="background: #ffc107; height: 100%; width: 100%; border-radius: 12px;"></div>
+                                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: bold; color: #333;">Warning!</div>
+                                </div>
                                 <p style="color: orange;">⚠️ Banner Detected but Rule Generation Failed</p>
                                 <p>Confidence: ${(data.confidence * 100).toFixed(1)}%</p>
-                            `);
+                            `;
+                            resultsHTML = resultsHTML.replace(`<div style="background: #e0e0e0; height: 25px`, replaceHTML);
                         } else if (data.success) {
-                            resultsHTML = resultsHTML.replace(`<p>Analyzing...</p>`, `
+                            const replaceHTML = `
+                                <div style="background: #e0e0e0; height: 25px; border-radius: 12px; overflow: hidden; position: relative; margin: 10px 0;">
+                                    <div style="background: #dc3545; height: 100%; width: 100%; border-radius: 12px;"></div>
+                                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: bold; color: white;">No Banner</div>
+                                </div>
                                 <p style="color: red;">❌ No Banner Detected</p>
                                 <p>${data.message || 'No consent banner found on this page'}</p>
-                            `);
+                            `;
+                            resultsHTML = resultsHTML.replace(`<div style="background: #e0e0e0; height: 25px`, replaceHTML);
                         } else {
-                            resultsHTML = resultsHTML.replace(`<p>Analyzing...</p>`, `
+                            const replaceHTML = `
+                                <div style="background: #e0e0e0; height: 25px; border-radius: 12px; overflow: hidden; position: relative; margin: 10px 0;">
+                                    <div style="background: #dc3545; height: 100%; width: 100%; border-radius: 12px;"></div>
+                                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: bold; color: white;">Failed</div>
+                                </div>
                                 <p style="color: red;">❌ Analysis Failed</p>
                                 <p>${data.error || 'Unknown error'}</p>
-                            `);
+                            `;
+                            resultsHTML = resultsHTML.replace(`<div style="background: #e0e0e0; height: 25px`, replaceHTML);
                         }
                         
                         result.innerHTML = resultsHTML;
                         
                     } catch (error) {
-                        resultsHTML = resultsHTML.replace(`<p>Analyzing...</p>`, `
+                        clearInterval(progressInterval);
+                        const replaceHTML = `
+                            <div style="background: #e0e0e0; height: 25px; border-radius: 12px; overflow: hidden; position: relative; margin: 10px 0;">
+                                <div style="background: #dc3545; height: 100%; width: 100%; border-radius: 12px;"></div>
+                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: bold; color: white;">Error</div>
+                            </div>
                             <p style="color: red;">❌ Network Error</p>
                             <p>${error.message}</p>
-                        `);
+                        `;
+                        resultsHTML = resultsHTML.replace(`<div style="background: #e0e0e0; height: 25px`, replaceHTML);
                         result.innerHTML = resultsHTML;
                     }
                     
