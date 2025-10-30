@@ -50,6 +50,7 @@ def index():
                     <button onclick="loadUrl('https://www.fresenius-kabi.com/en-ca/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">Fresenius Kabi</button>
                 </div>
                 <button onclick="testAllSites()" style="background: #ffc107; color: #333; padding: 10px 20px; font-size: 14px; font-weight: bold; width: 100%;">🚀 Test All 16 Sites</button>
+                <button onclick="generateBlendRxFreseniusRule()" style="background: #6f42c1; color: #fff; padding: 10px 20px; font-size: 14px; font-weight: bold; width: 100%; margin-top: 8px;">🧩 Generate Multi‑Site Rule (BlendRx + Fresenius)</button>
             </div>
             
             <div id="loading" style="display:none; margin-top: 20px;">
@@ -167,6 +168,53 @@ def index():
                 document.getElementById('url').value = url;
                 // Optional: Auto-analyze when clicking a quick link
                 // test();
+            }
+            
+            async function generateBlendRxFreseniusRule() {
+                const result = document.getElementById('result');
+                const loading = document.getElementById('loading');
+                const progressBar = document.getElementById('progress-bar');
+                const loadingText = document.getElementById('loading-text');
+                
+                result.style.display = 'none';
+                loading.style.display = 'block';
+                progressBar.style.width = '20%';
+                loadingText.textContent = 'Analyzing BlendRx...';
+                
+                try {
+                    const response = await fetch('/api/multi-rule', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ urls: ['https://blendrx.ca/', 'https://www.fresenius-kabi.com/en-ca/'] })
+                    });
+                    
+                    progressBar.style.width = '70%';
+                    loadingText.textContent = 'Merging rules...';
+                    const data = await response.json();
+                    progressBar.style.width = '100%';
+                    loadingText.textContent = 'Complete!';
+                    
+                    setTimeout(() => {
+                        loading.style.display = 'none';
+                        result.style.display = 'block';
+                        if (data.success) {
+                            result.innerHTML = `
+                                <h3>✅ Multi‑Site Rule Generated</h3>
+                                <p><strong>Sites:</strong> ${data.summary.join(', ')}</p>
+                                <p><strong>Detectors:</strong> ${data.rule.detectors ? data.rule.detectors.length : 0}</p>
+                                <p><strong>Methods:</strong> ${data.rule.methods ? data.rule.methods.length : 0}</p>
+                                <button onclick=\"downloadRule()\" style=\"background: #28a745; margin: 10px 0;\">⬇️ Download rules.json</button>
+                                <details style=\"margin-top: 10px;\">\n  <summary style=\"cursor: pointer; color: #007bff; font-weight: bold;\">📋 View Combined Rule JSON</summary>\n  <pre style=\"background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 10px;\">${JSON.stringify(data.rule, null, 2)}</pre>\n</details>
+                            `;
+                        } else {
+                            result.innerHTML = `<h3>❌ Failed</h3><p>${data.error || 'Could not generate multi‑site rule'}</p>`;
+                        }
+                    }, 400);
+                } catch (err) {
+                    loading.style.display = 'none';
+                    result.style.display = 'block';
+                    result.innerHTML = `<h3>❌ Error</h3><p>${err.message}</p>`;
+                }
             }
             
             async function testAllSites() {
@@ -413,6 +461,79 @@ def download_rule():
         as_attachment=True,
         download_name=f'{filename}_rule.json'
     )
+
+@app.route('/api/multi-rule', methods=['POST'])
+def multi_rule():
+    """Generate a combined Consent O Matic rule from multiple URLs."""
+    data = request.get_json(silent=True) or {}
+    urls = data.get('urls', [])
+    if not urls:
+        return jsonify({'success': False, 'error': 'No URLs provided'}), 400
+    
+    try:
+        from src.collectors.web_scraper import WebScraper
+        from src.detectors.banner_detector import BannerDetector
+        from src.generators.rule_generator import RuleGenerator
+        
+        rules = []
+        summaries = []
+        
+        with WebScraper(headless=True, timeout=35) as scraper:
+            detector = BannerDetector()
+            generator = RuleGenerator()
+            
+            for url in urls:
+                page_data = scraper.collect_page(url)
+                if not page_data or not page_data.html_content:
+                    continue
+                banner_info = detector.detect_banner(page_data)
+                if not banner_info:
+                    continue
+                rule = generator.generate_consent_o_matic_json(banner_info)
+                if rule:
+                    rules.append(rule)
+                    summaries.append(url)
+        
+        if not rules:
+            return jsonify({'success': False, 'error': 'No rules could be generated'}), 200
+        
+        # Merge rules (array-based format expected)
+        def dedup_list(items):
+            seen = set()
+            out = []
+            for it in items:
+                key = json.dumps(it, sort_keys=True)
+                if key not in seen:
+                    seen.add(key)
+                    out.append(it)
+            return out
+        
+        combined_detectors = []
+        combined_methods = []
+        for r in rules:
+            ds = r.get('detectors', [])
+            ms = r.get('methods', [])
+            # Support object-based fallback
+            if isinstance(ds, dict):
+                ds = list(ds.values())
+            if isinstance(ms, dict):
+                ms = list(ms.values())
+            combined_detectors.extend(ds)
+            combined_methods.extend(ms)
+        
+        combined_rule = {
+            'site': 'multi: blendrx.ca + fresenius-kabi.com',
+            'detectors': dedup_list(combined_detectors),
+            'methods': dedup_list(combined_methods)
+        }
+        
+        # Store for download
+        global current_rule
+        current_rule = combined_rule
+        
+        return jsonify({'success': True, 'rule': combined_rule, 'summary': summaries}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 200
 
 if __name__ == '__main__':
     print("Starting CMP Mapper on port 5001...")
