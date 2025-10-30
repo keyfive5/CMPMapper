@@ -521,10 +521,16 @@ def multi_rule():
             combined_detectors.extend(ds)
             combined_methods.extend(ms)
         
+        # Ensure non-empty detectors/methods
+        merged_detectors = dedup_list(combined_detectors)
+        if not merged_detectors:
+            merged_detectors = [{ 'preset': 'always', 'showing': 'body' }]
+        merged_methods = dedup_list(combined_methods)
+
         combined_rule = {
             'site': 'multi: blendrx.ca + fresenius-kabi.com',
-            'detectors': dedup_list(combined_detectors),
-            'methods': dedup_list(combined_methods)
+            'detectors': merged_detectors,
+            'methods': merged_methods
         }
         
         # Store for download

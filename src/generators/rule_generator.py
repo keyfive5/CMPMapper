@@ -327,7 +327,7 @@ class RuleGenerator:
             return '#ae8691b3-3701-479b-9637-df346cca9778-accept'
         
         # Look for simple ID selectors
-        id_match = re.search(r'#([a-f0-9-]+)', complex_selector)
+        id_match = re.search(r'#([A-Za-z0-9_-]+)', complex_selector)
         if id_match:
             return f"#{id_match.group(1)}"
         
