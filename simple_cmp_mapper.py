@@ -43,13 +43,34 @@ def index():
             
             <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
                 <h3 style="margin-top: 0; font-size: 16px; color: #495057;">📋 Quick Test Links:</h3>
-                <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
-                    <button onclick="loadUrl('https://www.margispharmacy.com/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">Margis Pharmacy</button>
-                    <button onclick="loadUrl('https://primecarepharmacy.ca/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">Prime Care Pharmacy</button>
-                    <button onclick="loadUrl('https://blendrx.ca/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">BlendRx</button>
-                    <button onclick="loadUrl('https://www.fresenius-kabi.com/en-ca/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">Fresenius Kabi</button>
+                <div style="margin-bottom: 15px;">
+                    <h4 style="margin: 10px 0 5px 0; font-size: 14px; color: #28a745;">🟢 GoDaddy Group (8 sites):</h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+                        <button onclick="loadUrl('https://pendalepharmacy.ca/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">Pendale Pharmacy</button>
+                        <button onclick="loadUrl('https://northmedafixcompoundingpharmacy.ca/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">North Medafix</button>
+                        <button onclick="loadUrl('https://centerpharm.ca/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">CenterPharm</button>
+                        <button onclick="loadUrl('https://riverviewpharmacy.ca/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">Riverview Pharmacy</button>
+                        <button onclick="loadUrl('https://nadiasmedicalcentre.ca/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">Nadia's Medical</button>
+                        <button onclick="loadUrl('https://www.midtowncompoundingpharmacy.ca/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">Midtown Pharmacy</button>
+                        <button onclick="loadUrl('https://abundancespecialtyrx.com/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">Abundance Specialty</button>
+                        <button onclick="loadUrl('https://rxottawa.ca/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">Rx Ottawa</button>
+                    </div>
+                    <h4 style="margin: 15px 0 5px 0; font-size: 14px; color: #ffc107;">🟡 CookieYes Group (4 sites):</h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+                        <button onclick="loadUrl('https://eramosapharmacy.ca/')" style="background: #ffc107; padding: 8px 15px; font-size: 12px;">Eramosa Pharmacy</button>
+                        <button onclick="loadUrl('https://www.westmountmedicalpharmacy.ca/')" style="background: #ffc107; padding: 8px 15px; font-size: 12px;">Westmount Medical</button>
+                        <button onclick="loadUrl('https://primecarepharmacy.ca/')" style="background: #ffc107; padding: 8px 15px; font-size: 12px;">Prime Care</button>
+                        <button onclick="loadUrl('https://www.arkellmedical.ca/')" style="background: #ffc107; padding: 8px 15px; font-size: 12px;">Arkell Medical</button>
+                    </div>
+                    <h4 style="margin: 15px 0 5px 0; font-size: 14px; color: #6f42c1;">🟣 Other Sites:</h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+                        <button onclick="loadUrl('https://www.margispharmacy.com/')" style="background: #6f42c1; padding: 8px 15px; font-size: 12px;">Margis Pharmacy</button>
+                        <button onclick="loadUrl('https://blendrx.ca/')" style="background: #6f42c1; padding: 8px 15px; font-size: 12px;">BlendRx</button>
+                        <button onclick="loadUrl('https://www.fresenius-kabi.com/en-ca/')" style="background: #6f42c1; padding: 8px 15px; font-size: 12px;">Fresenius Kabi</button>
+                    </div>
                 </div>
-                <button onclick="testAllSites()" style="background: #ffc107; color: #333; padding: 10px 20px; font-size: 14px; font-weight: bold; width: 100%;">🚀 Test All 16 Sites</button>
+                <button onclick="testAllSites()" style="background: #ffc107; color: #333; padding: 10px 20px; font-size: 14px; font-weight: bold; width: 100%;">🚀 Test All GoDaddy Sites (8)</button>
+                <button onclick="testAllCookieYesSites()" style="background: #28a745; color: #fff; padding: 10px 20px; font-size: 14px; font-weight: bold; width: 100%; margin-top: 8px;">🚀 Test All CookieYes Sites (4)</button>
                 <button onclick="generateBlendRxFreseniusRule()" style="background: #6f42c1; color: #fff; padding: 10px 20px; font-size: 14px; font-weight: bold; width: 100%; margin-top: 8px;">🧩 Generate Multi‑Site Rule (BlendRx + Fresenius)</button>
             </div>
             
@@ -203,8 +224,11 @@ def index():
                                 <p><strong>Sites:</strong> ${data.summary.join(', ')}</p>
                                 <p><strong>Detectors:</strong> ${data.rule.detectors ? data.rule.detectors.length : 0}</p>
                                 <p><strong>Methods:</strong> ${data.rule.methods ? data.rule.methods.length : 0}</p>
-                                <button onclick=\"downloadRule()\" style=\"background: #28a745; margin: 10px 0;\">⬇️ Download rules.json</button>
-                                <details style=\"margin-top: 10px;\">\n  <summary style=\"cursor: pointer; color: #007bff; font-weight: bold;\">📋 View Combined Rule JSON</summary>\n  <pre style=\"background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 10px;\">${JSON.stringify(data.rule, null, 2)}</pre>\n</details>
+                                <button onclick="downloadRule()" style="background: #28a745; margin: 10px 0;">⬇️ Download rules.json</button>
+                                <details style="margin-top: 10px;">
+  <summary style="cursor: pointer; color: #007bff; font-weight: bold;">📋 View Combined Rule JSON</summary>
+  <pre style="background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 10px;">${JSON.stringify(data.rule, null, 2)}</pre>
+</details>
                             `;
                         } else {
                             result.innerHTML = `<h3>❌ Failed</h3><p>${data.error || 'Could not generate multi‑site rule'}</p>`;
@@ -219,33 +243,38 @@ def index():
             
             async function testAllSites() {
                 const sites = [
-                    { url: 'https://pharmarightbarrie.ca/', name: 'Pharma Right Barrie' },
-                    { url: 'https://www.rexall.ca/storelocator/store/1388/', name: 'Rexall' },
-                    { url: 'https://sobeyspharmacy.com/stores/barriemolson-park/', name: 'Sobeys Pharmacy' },
-                    { url: 'https://www.walmart.ca/en/cp/digital-pharmacy/6000206038183', name: 'Walmart Pharmacy' },
-                    { url: 'https://bloordale.pharmabest.ca/', name: 'Bloordale PharmaBest' },
-                    { url: 'https://hcmpharmacy.pharmabest.ca/', name: 'HCM Pharmacy' },
-                    { url: 'https://www.cheo.on.ca/en/index.aspx', name: 'CHEO' },
-                    { url: 'https://rxottawa.ca/', name: 'RX Ottawa' },
-                    { url: 'https://www.arkellmedical.ca/', name: 'Arkell Medical' },
-                    { url: 'https://www.eramosapharmacy.ca/', name: 'Eramos Pharmacy' },
-                    { url: 'https://primecarepharmacy.ca/', name: 'Prime Care Pharmacy' },
-                    { url: 'https://www.westmountmedicalpharmacy.ca/', name: 'Westmount Medical Pharmacy' },
-                    { url: 'https://medixpro.wordpress.com/', name: 'MedixPro' },
-                    { url: 'https://northmedafixcompoundingpharmacy.ca/contact-us', name: 'North Meda Fix' },
                     { url: 'https://pendalepharmacy.ca/', name: 'Pendale Pharmacy' },
-                    { url: 'https://www.pillway.com/', name: 'Pillway' }
+                    { url: 'https://northmedafixcompoundingpharmacy.ca/', name: 'North Medafix' },
+                    { url: 'https://centerpharm.ca/', name: 'CenterPharm' },
+                    { url: 'https://riverviewpharmacy.ca/', name: 'Riverview Pharmacy' },
+                    { url: 'https://nadiasmedicalcentre.ca/', name: 'Nadia\'s Medical' },
+                    { url: 'https://www.midtowncompoundingpharmacy.ca/', name: 'Midtown Pharmacy' },
+                    { url: 'https://abundancespecialtyrx.com/', name: 'Abundance Specialty' },
+                    { url: 'https://rxottawa.ca/', name: 'Rx Ottawa' }
                 ];
                 
+                await testSiteGroup(sites, 'GoDaddy Group');
+            }
+            
+            async function testAllCookieYesSites() {
+                const sites = [
+                    { url: 'https://eramosapharmacy.ca/', name: 'Eramosa Pharmacy' },
+                    { url: 'https://www.westmountmedicalpharmacy.ca/', name: 'Westmount Medical' },
+                    { url: 'https://primecarepharmacy.ca/', name: 'Prime Care' },
+                    { url: 'https://www.arkellmedical.ca/', name: 'Arkell Medical' }
+                ];
+                
+                await testSiteGroup(sites, 'CookieYes Group');
+            }
+            
+            async function testSiteGroup(sites, groupName) {
                 const result = document.getElementById('result');
                 const loading = document.getElementById('loading');
                 
                 loading.style.display = 'block';
                 result.style.display = 'block';
                 
-                let resultsHTML = '<h3>Test Results for All 16 Sites</h3>';
-                let startTime = Date.now();
-                const totalDuration = 40000; // 40 seconds total
+                let resultsHTML = `<h3>Test Results for ${groupName} (${sites.length} sites)</h3>`;
                 
                 for (let i = 0; i < sites.length; i++) {
                     const site = sites[i];
@@ -318,7 +347,7 @@ def index():
                                 <p>Buttons Found: ${data.buttons_count}</p>
                                 <button onclick="downloadRule()" style="background: #28a745; margin: 10px 0; padding: 8px 15px; color: white; border: none; border-radius: 5px; cursor: pointer;">⬇️ Download rules.json</button>
                                 <details style="margin-top: 10px;">
-                                    <summary style="cursor: pointer; color: #007bff; font-weight: bold;">📋 View Generated Rule JSON</summary>
+                                    <summary style="cursor: pointer; color: #007bff; font-weight: bold;">📋 View Rule JSON</summary>
                                     <pre style="background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 10px;">${JSON.stringify(data.rule, null, 2)}</pre>
                                 </details>
                             `;
@@ -542,6 +571,6 @@ def multi_rule():
         return jsonify({'success': False, 'error': str(e)}), 200
 
 if __name__ == '__main__':
-    print("Starting CMP Mapper on port 5001...")
-    print("Open: http://localhost:5001")
-    app.run(debug=True, port=5001, host='127.0.0.1')
+    print("Starting CMP Mapper on port 5002...")
+    print("Open: http://localhost:5002")
+    app.run(debug=False, port=5002, host='127.0.0.1')
