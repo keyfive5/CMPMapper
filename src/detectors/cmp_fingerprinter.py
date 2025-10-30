@@ -103,10 +103,10 @@ class CMPFingerprinter:
         Returns:
             Tuple of (CMP name, confidence score, detected indicators)
         """
-        if not page_data or not page_data.html:
+        if not page_data or not page_data.html_content:
             return "Unknown", 0.0, []
         
-        soup = BeautifulSoup(page_data.html, 'html.parser')
+        soup = BeautifulSoup(page_data.html_content, 'html.parser')
         script_content = self._extract_script_content(soup)
         dom_elements = self._extract_dom_elements(soup)
         

@@ -14,6 +14,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 app = Flask(__name__)
 
+# Store the last generated rule
+current_rule = None
+
 @app.route('/')
 def index():
     return '''
@@ -35,8 +38,16 @@ def index():
             <h1>🍪 CMP Mapper - Working Version</h1>
             <p>Server is running on port 5001</p>
             
-            <input type="text" id="url" placeholder="Enter website URL" />
+            <input type="text" id="url" placeholder="Enter website URL (e.g., https://www.margispharmacy.com/)" />
             <button onclick="test()">Analyze for Consent Banner</button>
+            
+            <div id="loading" style="display:none; margin-top: 20px;">
+                <div style="background: #e0e0e0; height: 30px; border-radius: 15px; overflow: hidden; position: relative;">
+                    <div id="progress-bar" style="background: linear-gradient(90deg, #28a745, #20c997); height: 100%; width: 0%; transition: width 0.3s ease; border-radius: 15px;"></div>
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 14px; font-weight: bold;">Loading...</div>
+                </div>
+                <p id="loading-text" style="text-align: center; margin-top: 10px; color: #666;">Starting analysis...</p>
+            </div>
             
             <div id="result" class="result" style="display:none;"></div>
         </div>
@@ -45,9 +56,33 @@ def index():
             async function test() {
                 const url = document.getElementById('url').value;
                 const result = document.getElementById('result');
+                const loading = document.getElementById('loading');
+                const progressBar = document.getElementById('progress-bar');
+                const loadingText = document.getElementById('loading-text');
                 
-                result.innerHTML = 'Testing...';
-                result.style.display = 'block';
+                // Hide previous results and show loading
+                result.style.display = 'none';
+                loading.style.display = 'block';
+                progressBar.style.width = '10%';
+                loadingText.textContent = 'Starting analysis...';
+                
+                // Simulate progress
+                const progressSteps = [
+                    { progress: 20, text: 'Scraping website...' },
+                    { progress: 40, text: 'Analyzing HTML content...' },
+                    { progress: 60, text: 'Detecting consent banner...' },
+                    { progress: 80, text: 'Generating rule...' }
+                ];
+                
+                let stepIndex = 0;
+                const progressInterval = setInterval(() => {
+                    if (stepIndex < progressSteps.length) {
+                        const step = progressSteps[stepIndex];
+                        progressBar.style.width = step.progress + '%';
+                        loadingText.textContent = step.text;
+                        stepIndex++;
+                    }
+                }, 1500);
                 
                 try {
                     const response = await fetch('/api/test', {
@@ -58,34 +93,63 @@ def index():
                     
                     const data = await response.json();
                     
-                    if (data.success) {
-                        if (data.banner_detected) {
-                            result.innerHTML = `
-                                <h3>✅ Consent Banner Detected!</h3>
-                                <p><strong>Confidence:</strong> ${(data.confidence * 100).toFixed(1)}%</p>
-                                <p><strong>Banner Type:</strong> ${data.banner_type}</p>
-                                <p><strong>Buttons Found:</strong> ${data.buttons_count}</p>
-                                <p><strong>Container:</strong> ${data.container_selector}</p>
-                                <p><strong>Rule Generated:</strong> ${data.rule_generated ? 'Yes' : 'No'}</p>
-                                <p><strong>URL:</strong> ${data.url}</p>
-                            `;
+                    // Clear progress interval and complete loading
+                    clearInterval(progressInterval);
+                    progressBar.style.width = '100%';
+                    loadingText.textContent = 'Analysis complete!';
+                    
+                    // Wait a moment, then show results
+                    setTimeout(() => {
+                        loading.style.display = 'none';
+                        result.style.display = 'block';
+                        
+                        if (data.success) {
+                            if (data.banner_detected && data.rule) {
+                                result.innerHTML = `
+                                    <h3>✅ Consent Banner Detected!</h3>
+                                    <p><strong>Confidence:</strong> ${(data.confidence * 100).toFixed(1)}%</p>
+                                    <p><strong>Banner Type:</strong> ${data.banner_type}</p>
+                                    <p><strong>Buttons Found:</strong> ${data.buttons_count}</p>
+                                    <p><strong>Container:</strong> ${data.container_selector}</p>
+                                    <p><strong>URL:</strong> ${data.url}</p>
+                                    <hr>
+                                    <h4>Generated Consent O Matic Rule:</h4>
+                                    <button onclick="downloadRule()" style="background: #28a745; margin: 10px 0;">⬇️ Download rules.json</button>
+                                    <pre style="background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto;">${JSON.stringify(data.rule, null, 2)}</pre>
+                                `;
+                            } else if (data.banner_detected) {
+                                result.innerHTML = `
+                                    <h3>✅ Consent Banner Detected!</h3>
+                                    <p><strong>Confidence:</strong> ${(data.confidence * 100).toFixed(1)}%</p>
+                                    <p><strong>Banner Type:</strong> ${data.banner_type}</p>
+                                    <p><strong>URL:</strong> ${data.url}</p>
+                                    <p style="color: red;">⚠️ Rule generation failed</p>
+                                `;
+                            } else {
+                                result.innerHTML = `
+                                    <h3>❌ No Consent Banner Detected</h3>
+                                    <p>${data.message}</p>
+                                    <p><strong>URL:</strong> ${data.url}</p>
+                                `;
+                            }
                         } else {
                             result.innerHTML = `
-                                <h3>❌ No Consent Banner Detected</h3>
-                                <p>${data.message}</p>
+                                <h3>❌ Analysis Failed</h3>
+                                <p>${data.error}</p>
                                 <p><strong>URL:</strong> ${data.url}</p>
                             `;
                         }
-                    } else {
-                        result.innerHTML = `
-                            <h3>❌ Analysis Failed</h3>
-                            <p>${data.error}</p>
-                            <p><strong>URL:</strong> ${data.url}</p>
-                        `;
-                    }
+                    }, 500);  // Half second delay
                 } catch (error) {
+                    clearInterval(progressInterval);
+                    loading.style.display = 'none';
+                    result.style.display = 'block';
                     result.innerHTML = `<h3>❌ Error</h3><p>${error.message}</p>`;
                 }
+            }
+            
+            function downloadRule() {
+                window.open('/api/download-rule', '_blank');
             }
         </script>
     </body>
@@ -123,6 +187,10 @@ def test():
             generator = RuleGenerator()
             rule = generator.generate_consent_o_matic_json(banner_info)
             
+            # Store the rule globally for download
+            global current_rule
+            current_rule = rule
+            
             return jsonify({
                 'success': True,
                 'banner_detected': True,
@@ -131,6 +199,7 @@ def test():
                 'buttons_count': len(banner_info.buttons),
                 'container_selector': banner_info.container_selector,
                 'rule_generated': rule is not None,
+                'rule': rule,
                 'url': url
             })
         else:
@@ -147,6 +216,31 @@ def test():
             'error': f'Analysis failed: {str(e)}',
             'url': url
         })
+
+@app.route('/api/download-rule')
+def download_rule():
+    """Download the generated rule as JSON file."""
+    global current_rule
+    
+    if not current_rule:
+        return jsonify({'error': 'No rule generated yet'}), 400
+    
+    # Get the site name from the rule to create filename
+    site_name = current_rule.get('site', 'consent_rule')
+    # Clean the site name for filename
+    filename = site_name.replace('https://', '').replace('http://', '').split('/')[0].replace('.', '_')
+    
+    # Create a temporary file with the JSON rule
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        json.dump(current_rule, f, indent=2)
+        temp_path = f.name
+    
+    return send_file(
+        temp_path,
+        mimetype='application/json',
+        as_attachment=True,
+        download_name=f'{filename}_rule.json'
+    )
 
 if __name__ == '__main__':
     print("Starting CMP Mapper on port 5001...")
