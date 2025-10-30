@@ -41,6 +41,16 @@ def index():
             <input type="text" id="url" placeholder="Enter website URL (e.g., https://www.margispharmacy.com/)" />
             <button onclick="test()">Analyze for Consent Banner</button>
             
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <h3 style="margin-top: 0; font-size: 16px; color: #495057;">📋 Quick Test Links:</h3>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    <button onclick="loadUrl('https://www.margispharmacy.com/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">Margis Pharmacy</button>
+                    <button onclick="loadUrl('https://primecarepharmacy.ca/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">Prime Care Pharmacy</button>
+                    <button onclick="loadUrl('https://blendrx.ca/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">BlendRx</button>
+                    <button onclick="loadUrl('https://www.fresenius-kabi.com/en-ca/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">Fresenius Kabi</button>
+                </div>
+            </div>
+            
             <div id="loading" style="display:none; margin-top: 20px;">
                 <div style="background: #e0e0e0; height: 30px; border-radius: 15px; overflow: hidden; position: relative;">
                     <div id="progress-bar" style="background: linear-gradient(90deg, #28a745, #20c997); height: 100%; width: 0%; transition: width 0.3s ease; border-radius: 15px;"></div>
@@ -150,6 +160,12 @@ def index():
             
             function downloadRule() {
                 window.open('/api/download-rule', '_blank');
+            }
+            
+            function loadUrl(url) {
+                document.getElementById('url').value = url;
+                // Optional: Auto-analyze when clicking a quick link
+                // test();
             }
         </script>
     </body>
