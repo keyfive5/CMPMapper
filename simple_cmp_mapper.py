@@ -189,10 +189,11 @@ def index():
                 
                 for (let i = 0; i < sites.length; i++) {
                     const site = sites[i];
-                    const siteStartTime = Date.now();
                     
+                    // Add site header
                     resultsHTML += `<hr><h4>${i + 1}. ${site.name}</h4>`;
                     resultsHTML += `<p>URL: ${site.url}</p>`;
+                    resultsHTML += `<div id="site-${i}">`;
                     resultsHTML += `
                         <div style="background: #e0e0e0; height: 25px; border-radius: 12px; overflow: hidden; position: relative; margin: 10px 0;">
                             <div id="progress-${i}" style="background: linear-gradient(90deg, #28a745, #20c997); height: 100%; width: 0%; transition: width 0.3s ease; border-radius: 12px;"></div>
@@ -200,6 +201,7 @@ def index():
                         </div>
                         <p id="eta-${i}" style="text-align: center; color: #666; font-size: 12px;">Analyzing... ETA: ~10s</p>
                     `;
+                    resultsHTML += '</div>';
                     
                     result.innerHTML = resultsHTML;
                     result.style.display = 'block';
@@ -242,9 +244,11 @@ def index():
                         
                         const data = await response.json();
                         
+                        // Update the specific site's content
+                        const siteDiv = document.getElementById(`site-${i}`);
+                        
                         if (data.success && data.banner_detected && data.rule) {
-                            const etaUpdate = document.getElementById(`eta-${i}`);
-                            const replaceHTML = `
+                            siteDiv.innerHTML = `
                                 <div style="background: #e0e0e0; height: 25px; border-radius: 12px; overflow: hidden; position: relative; margin: 10px 0;">
                                     <div style="background: #28a745; height: 100%; width: 100%; border-radius: 12px;"></div>
                                     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: bold; color: white;">Complete!</div>
@@ -258,9 +262,8 @@ def index():
                                     <pre style="background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto; margin-top: 10px;">${JSON.stringify(data.rule, null, 2)}</pre>
                                 </details>
                             `;
-                            resultsHTML = resultsHTML.replace(`<div style="background: #e0e0e0; height: 25px`, replaceHTML);
                         } else if (data.success && data.banner_detected) {
-                            const replaceHTML = `
+                            siteDiv.innerHTML = `
                                 <div style="background: #e0e0e0; height: 25px; border-radius: 12px; overflow: hidden; position: relative; margin: 10px 0;">
                                     <div style="background: #ffc107; height: 100%; width: 100%; border-radius: 12px;"></div>
                                     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: bold; color: #333;">Warning!</div>
@@ -268,9 +271,8 @@ def index():
                                 <p style="color: orange;">⚠️ Banner Detected but Rule Generation Failed</p>
                                 <p>Confidence: ${(data.confidence * 100).toFixed(1)}%</p>
                             `;
-                            resultsHTML = resultsHTML.replace(`<div style="background: #e0e0e0; height: 25px`, replaceHTML);
                         } else if (data.success) {
-                            const replaceHTML = `
+                            siteDiv.innerHTML = `
                                 <div style="background: #e0e0e0; height: 25px; border-radius: 12px; overflow: hidden; position: relative; margin: 10px 0;">
                                     <div style="background: #dc3545; height: 100%; width: 100%; border-radius: 12px;"></div>
                                     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: bold; color: white;">No Banner</div>
@@ -278,9 +280,8 @@ def index():
                                 <p style="color: red;">❌ No Banner Detected</p>
                                 <p>${data.message || 'No consent banner found on this page'}</p>
                             `;
-                            resultsHTML = resultsHTML.replace(`<div style="background: #e0e0e0; height: 25px`, replaceHTML);
                         } else {
-                            const replaceHTML = `
+                            siteDiv.innerHTML = `
                                 <div style="background: #e0e0e0; height: 25px; border-radius: 12px; overflow: hidden; position: relative; margin: 10px 0;">
                                     <div style="background: #dc3545; height: 100%; width: 100%; border-radius: 12px;"></div>
                                     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: bold; color: white;">Failed</div>
@@ -288,14 +289,12 @@ def index():
                                 <p style="color: red;">❌ Analysis Failed</p>
                                 <p>${data.error || 'Unknown error'}</p>
                             `;
-                            resultsHTML = resultsHTML.replace(`<div style="background: #e0e0e0; height: 25px`, replaceHTML);
                         }
-                        
-                        result.innerHTML = resultsHTML;
                         
                     } catch (error) {
                         clearInterval(progressInterval);
-                        const replaceHTML = `
+                        const siteDiv = document.getElementById(`site-${i}`);
+                        siteDiv.innerHTML = `
                             <div style="background: #e0e0e0; height: 25px; border-radius: 12px; overflow: hidden; position: relative; margin: 10px 0;">
                                 <div style="background: #dc3545; height: 100%; width: 100%; border-radius: 12px;"></div>
                                 <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: bold; color: white;">Error</div>
@@ -303,8 +302,6 @@ def index():
                             <p style="color: red;">❌ Network Error</p>
                             <p>${error.message}</p>
                         `;
-                        resultsHTML = resultsHTML.replace(`<div style="background: #e0e0e0; height: 25px`, replaceHTML);
-                        result.innerHTML = resultsHTML;
                     }
                     
                     // Wait 1 second before testing next site
