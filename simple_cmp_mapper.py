@@ -49,7 +49,7 @@ def index():
                     <button onclick="loadUrl('https://blendrx.ca/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">BlendRx</button>
                     <button onclick="loadUrl('https://www.fresenius-kabi.com/en-ca/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">Fresenius Kabi</button>
                 </div>
-                <button onclick="testAllSites()" style="background: #ffc107; color: #333; padding: 10px 20px; font-size: 14px; font-weight: bold; width: 100%;">🚀 Test All 4 Sites</button>
+                <button onclick="testAllSites()" style="background: #ffc107; color: #333; padding: 10px 20px; font-size: 14px; font-weight: bold; width: 100%;">🚀 Test All 16 Sites</button>
             </div>
             
             <div id="loading" style="display:none; margin-top: 20px;">
@@ -171,10 +171,22 @@ def index():
             
             async function testAllSites() {
                 const sites = [
-                    { url: 'https://www.margispharmacy.com/', name: 'Margis Pharmacy' },
+                    { url: 'https://pharmarightbarrie.ca/', name: 'Pharma Right Barrie' },
+                    { url: 'https://www.rexall.ca/storelocator/store/1388/', name: 'Rexall' },
+                    { url: 'https://sobeyspharmacy.com/stores/barriemolson-park/', name: 'Sobeys Pharmacy' },
+                    { url: 'https://www.walmart.ca/en/cp/digital-pharmacy/6000206038183', name: 'Walmart Pharmacy' },
+                    { url: 'https://bloordale.pharmabest.ca/', name: 'Bloordale PharmaBest' },
+                    { url: 'https://hcmpharmacy.pharmabest.ca/', name: 'HCM Pharmacy' },
+                    { url: 'https://www.cheo.on.ca/en/index.aspx', name: 'CHEO' },
+                    { url: 'https://rxottawa.ca/', name: 'RX Ottawa' },
+                    { url: 'https://www.arkellmedical.ca/', name: 'Arkell Medical' },
+                    { url: 'https://www.eramosapharmacy.ca/', name: 'Eramos Pharmacy' },
                     { url: 'https://primecarepharmacy.ca/', name: 'Prime Care Pharmacy' },
-                    { url: 'https://blendrx.ca/', name: 'BlendRx' },
-                    { url: 'https://www.fresenius-kabi.com/en-ca/', name: 'Fresenius Kabi' }
+                    { url: 'https://www.westmountmedicalpharmacy.ca/', name: 'Westmount Medical Pharmacy' },
+                    { url: 'https://medixpro.wordpress.com/', name: 'MedixPro' },
+                    { url: 'https://northmedafixcompoundingpharmacy.ca/contact-us', name: 'North Meda Fix' },
+                    { url: 'https://pendalepharmacy.ca/', name: 'Pendale Pharmacy' },
+                    { url: 'https://www.pillway.com/', name: 'Pillway' }
                 ];
                 
                 const result = document.getElementById('result');
@@ -183,7 +195,7 @@ def index():
                 loading.style.display = 'block';
                 result.style.display = 'block';
                 
-                let resultsHTML = '<h3>Test Results for All 4 Sites</h3>';
+                let resultsHTML = '<h3>Test Results for All 16 Sites</h3>';
                 let startTime = Date.now();
                 const totalDuration = 40000; // 40 seconds total
                 
