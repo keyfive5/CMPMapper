@@ -204,7 +204,7 @@ class RuleGenerator:
                 simpler_selector = self._extract_simple_selector(selector)
                 if simpler_selector and len(simpler_selector) < len(selector):
                     selector = simpler_selector
-                    print(f"   Using simplified selector: {selector}")
+                    print(f"   🔧 Using simplified selector: {selector}")
                 else:
                     # Try to find a simpler selector from other buttons
                     simpler_selectors = []

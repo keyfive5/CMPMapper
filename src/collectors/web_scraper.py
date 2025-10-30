@@ -146,7 +146,7 @@ class WebScraper:
             
             # Check if we got a blocked/error page
             if self._is_blocked_page(html_content):
-                print(f"Warning: Bot protection page detected")
+                print(f"WARNING: Bot protection page detected")
                 return PageData(
                     url=url,
                     html_content=html_content,
