@@ -204,7 +204,7 @@ class RuleGenerator:
                 simpler_selector = self._extract_simple_selector(selector)
                 if simpler_selector and len(simpler_selector) < len(selector):
                     selector = simpler_selector
-                    print(f"   🔧 Using simplified selector: {selector}")
+                    print(f"   [INFO] Using simplified selector: {selector}")
                 else:
                     # Try to find a simpler selector from other buttons
                     simpler_selectors = []
@@ -220,7 +220,7 @@ class RuleGenerator:
                         # Use the simplest alternative
                         best_button = min(simpler_selectors, key=lambda x: len(x.selector))
                         selector = best_button.selector
-                        print(f"   🔧 Using alternative selector: {selector[:100]}...")
+                        print(f"   [INFO] Using alternative selector: {selector[:100]}...")
             
             consent_method = {
                 "action": {

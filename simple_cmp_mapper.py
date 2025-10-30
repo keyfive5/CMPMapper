@@ -43,12 +43,13 @@ def index():
             
             <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
                 <h3 style="margin-top: 0; font-size: 16px; color: #495057;">📋 Quick Test Links:</h3>
-                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
                     <button onclick="loadUrl('https://www.margispharmacy.com/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">Margis Pharmacy</button>
                     <button onclick="loadUrl('https://primecarepharmacy.ca/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">Prime Care Pharmacy</button>
                     <button onclick="loadUrl('https://blendrx.ca/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">BlendRx</button>
                     <button onclick="loadUrl('https://www.fresenius-kabi.com/en-ca/')" style="background: #17a2b8; padding: 8px 15px; font-size: 12px;">Fresenius Kabi</button>
                 </div>
+                <button onclick="testAllSites()" style="background: #ffc107; color: #333; padding: 10px 20px; font-size: 14px; font-weight: bold; width: 100%;">🚀 Test All 4 Sites</button>
             </div>
             
             <div id="loading" style="display:none; margin-top: 20px;">
@@ -166,6 +167,81 @@ def index():
                 document.getElementById('url').value = url;
                 // Optional: Auto-analyze when clicking a quick link
                 // test();
+            }
+            
+            async function testAllSites() {
+                const sites = [
+                    { url: 'https://www.margispharmacy.com/', name: 'Margis Pharmacy' },
+                    { url: 'https://primecarepharmacy.ca/', name: 'Prime Care Pharmacy' },
+                    { url: 'https://blendrx.ca/', name: 'BlendRx' },
+                    { url: 'https://www.fresenius-kabi.com/en-ca/', name: 'Fresenius Kabi' }
+                ];
+                
+                const result = document.getElementById('result');
+                const loading = document.getElementById('loading');
+                
+                loading.style.display = 'block';
+                result.style.display = 'none';
+                
+                let resultsHTML = '<h3>Test Results for All 4 Sites</h3>';
+                
+                for (let i = 0; i < sites.length; i++) {
+                    const site = sites[i];
+                    resultsHTML += `<hr><h4>${i + 1}. ${site.name}</h4>`;
+                    resultsHTML += `<p>URL: ${site.url}</p>`;
+                    resultsHTML += '<p>Analyzing...</p>';
+                    
+                    result.innerHTML = resultsHTML;
+                    result.style.display = 'block';
+                    
+                    try {
+                        const response = await fetch('/api/test', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url: site.url })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success && data.banner_detected && data.rule) {
+                            resultsHTML = resultsHTML.replace(`<p>Analyzing...</p>`, `
+                                <p style="color: green;">✅ Banner Detected (Confidence: ${(data.confidence * 100).toFixed(1)}%)</p>
+                                <p>Banner Type: ${data.banner_type}</p>
+                                <p>Buttons Found: ${data.buttons_count}</p>
+                            `);
+                        } else if (data.success && data.banner_detected) {
+                            resultsHTML = resultsHTML.replace(`<p>Analyzing...</p>`, `
+                                <p style="color: orange;">⚠️ Banner Detected but Rule Generation Failed</p>
+                                <p>Confidence: ${(data.confidence * 100).toFixed(1)}%</p>
+                            `);
+                        } else if (data.success) {
+                            resultsHTML = resultsHTML.replace(`<p>Analyzing...</p>`, `
+                                <p style="color: red;">❌ No Banner Detected</p>
+                                <p>${data.message || 'No consent banner found on this page'}</p>
+                            `);
+                        } else {
+                            resultsHTML = resultsHTML.replace(`<p>Analyzing...</p>`, `
+                                <p style="color: red;">❌ Analysis Failed</p>
+                                <p>${data.error || 'Unknown error'}</p>
+                            `);
+                        }
+                        
+                        result.innerHTML = resultsHTML;
+                        
+                    } catch (error) {
+                        resultsHTML = resultsHTML.replace(`<p>Analyzing...</p>`, `
+                            <p style="color: red;">❌ Network Error</p>
+                            <p>${error.message}</p>
+                        `);
+                        result.innerHTML = resultsHTML;
+                    }
+                    
+                    // Wait 1 second before testing next site
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+                loading.style.display = 'none';
+                result.innerHTML = resultsHTML;
             }
         </script>
     </body>
