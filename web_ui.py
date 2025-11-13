@@ -11,6 +11,9 @@ from datetime import datetime
 from flask import Flask, render_template, request, jsonify, send_file
 import threading
 import webbrowser
+import pandas as pd
+from werkzeug.utils import secure_filename
+from pathlib import Path
 
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
@@ -485,6 +488,261 @@ def retry_analysis():
             
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/upload-urls', methods=['POST'])
+def upload_urls():
+    """Upload Excel or CSV file with URLs for batch testing."""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Check file extension
+        filename = secure_filename(file.filename)
+        file_ext = os.path.splitext(filename)[1].lower()
+        
+        if file_ext not in ['.xlsx', '.xls', '.csv']:
+            return jsonify({'error': 'Invalid file type. Please upload Excel (.xlsx, .xls) or CSV (.csv) file'}), 400
+        
+        # Read file
+        try:
+            if file_ext == '.csv':
+                df = pd.read_csv(file)
+            else:
+                df = pd.read_excel(file)
+        except Exception as e:
+            return jsonify({'error': f'Error reading file: {str(e)}'}), 400
+        
+        # Extract URLs from first column or column named 'url' or 'URL'
+        urls = []
+        if 'url' in df.columns.str.lower():
+            url_col = df.columns[df.columns.str.lower() == 'url'][0]
+            urls = df[url_col].dropna().astype(str).tolist()
+        elif 'URL' in df.columns:
+            urls = df['URL'].dropna().astype(str).tolist()
+        else:
+            # Use first column
+            urls = df.iloc[:, 0].dropna().astype(str).tolist()
+        
+        # Clean URLs
+        urls = [url.strip() for url in urls if url.strip()]
+        
+        # Remove duplicates
+        urls = list(dict.fromkeys(urls))
+        
+        if not urls:
+            return jsonify({'error': 'No URLs found in file'}), 400
+        
+        if len(urls) > 100:
+            return jsonify({'error': f'Too many URLs ({len(urls)}). Maximum 100 URLs allowed per batch'}), 400
+        
+        return jsonify({
+            'success': True,
+            'urls': urls,
+            'count': len(urls)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/list-rules', methods=['GET'])
+def list_rules():
+    """List all available Consent O Matic rules."""
+    try:
+        rules_dir = os.path.join(os.path.dirname(__file__), 'custom-consent-o-matic-rules', 'rules')
+        rules = []
+        
+        if os.path.exists(rules_dir):
+            for filename in os.listdir(rules_dir):
+                if filename.endswith('.json'):
+                    rule_path = os.path.join(rules_dir, filename)
+                    try:
+                        with open(rule_path, 'r', encoding='utf-8') as f:
+                            rule_data = json.load(f)
+                            
+                        # Extract site name from rule
+                        site_name = None
+                        if '$schema' in rule_data:
+                            site_keys = [k for k in rule_data.keys() if k != '$schema']
+                            if site_keys:
+                                site_name = site_keys[0]
+                        else:
+                            site_name = rule_data.get('site', filename.replace('.json', ''))
+                        
+                        rules.append({
+                            'filename': filename,
+                            'site_name': site_name,
+                            'path': rule_path,
+                            'size': os.path.getsize(rule_path)
+                        })
+                    except Exception as e:
+                        print(f"Error reading rule {filename}: {e}")
+        
+        return jsonify({
+            'success': True,
+            'rules': rules,
+            'count': len(rules)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/load-rule/<filename>', methods=['GET'])
+def load_rule(filename):
+    """Load a specific Consent O Matic rule."""
+    try:
+        rules_dir = os.path.join(os.path.dirname(__file__), 'custom-consent-o-matic-rules', 'rules')
+        rule_path = os.path.join(rules_dir, secure_filename(filename))
+        
+        if not os.path.exists(rule_path):
+            return jsonify({'error': 'Rule not found'}), 404
+        
+        with open(rule_path, 'r', encoding='utf-8') as f:
+            rule_data = json.load(f)
+        
+        return jsonify({
+            'success': True,
+            'rule': rule_data,
+            'filename': filename
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/batch-test', methods=['POST'])
+def batch_test():
+    """Batch test URLs against Consent O Matic rules."""
+    try:
+        data = request.get_json()
+        urls = data.get('urls', [])
+        rule_filenames = data.get('rules', [])  # List of rule filenames to test
+        
+        if not urls:
+            return jsonify({'error': 'No URLs provided'}), 400
+        
+        if len(urls) > 100:
+            return jsonify({'error': 'Maximum 100 URLs allowed per batch'}), 400
+        
+        # Load rules
+        rules_dir = os.path.join(os.path.dirname(__file__), 'custom-consent-o-matic-rules', 'rules')
+        loaded_rules = {}
+        
+        if rule_filenames:
+            for filename in rule_filenames:
+                rule_path = os.path.join(rules_dir, secure_filename(filename))
+                if os.path.exists(rule_path):
+                    with open(rule_path, 'r', encoding='utf-8') as f:
+                        loaded_rules[filename] = json.load(f)
+        else:
+            # Load all rules if none specified
+            if os.path.exists(rules_dir):
+                for filename in os.listdir(rules_dir):
+                    if filename.endswith('.json'):
+                        rule_path = os.path.join(rules_dir, filename)
+                        with open(rule_path, 'r', encoding='utf-8') as f:
+                            loaded_rules[filename] = json.load(f)
+        
+        if not loaded_rules:
+            return jsonify({'error': 'No rules available for testing'}), 400
+        
+        # Test each URL
+        results = []
+        detector = BannerDetector()
+        
+        for i, url in enumerate(urls):
+            try:
+                # Add https if no protocol specified
+                if not url.startswith(('http://', 'https://')):
+                    url = 'https://' + url
+                
+                # Collect page data
+                with WebScraper(headless=True, timeout=30) as scraper:
+                    page_data = scraper.collect_page(url)
+                
+                if not page_data or not page_data.html_content:
+                    results.append({
+                        'url': url,
+                        'success': False,
+                        'error': 'Failed to collect page data',
+                        'banner_detected': False,
+                        'rules_matched': []
+                    })
+                    continue
+                
+                # Detect banner
+                banner_info = detector.detect_banner(page_data)
+                
+                # Check which rules match
+                rules_matched = []
+                if banner_info:
+                    for rule_filename, rule_data in loaded_rules.items():
+                        # Simple matching: check if selectors from rule exist in page
+                        # This is a simplified version - in production, you'd use Consent O Matic's actual matching logic
+                        try:
+                            if '$schema' in rule_data:
+                                site_keys = [k for k in rule_data.keys() if k != '$schema']
+                                if site_keys:
+                                    site_rule = rule_data[site_keys[0]]
+                                    if 'detectors' in site_rule:
+                                        present_matcher = site_rule['detectors'].get('presentMatcher', {})
+                                        if 'target' in present_matcher:
+                                            selector = present_matcher['target'].get('selector', '')
+                                            # Check if selector exists in HTML (simplified check)
+                                            if selector and selector in page_data.html_content:
+                                                rules_matched.append({
+                                                    'rule': rule_filename,
+                                                    'matched': True,
+                                                    'selector': selector
+                                                })
+                        except Exception as e:
+                            print(f"Error matching rule {rule_filename}: {e}")
+                
+                results.append({
+                    'url': url,
+                    'success': True,
+                    'banner_detected': banner_info is not None,
+                    'banner_info': {
+                        'banner_type': banner_info.banner_type.value if banner_info else None,
+                        'confidence': banner_info.detection_confidence if banner_info else 0,
+                        'buttons': len(banner_info.buttons) if banner_info else 0
+                    } if banner_info else None,
+                    'rules_matched': rules_matched,
+                    'progress': ((i + 1) / len(urls)) * 100
+                })
+                
+            except Exception as e:
+                results.append({
+                    'url': url,
+                    'success': False,
+                    'error': str(e),
+                    'banner_detected': False,
+                    'rules_matched': []
+                })
+        
+        # Calculate statistics
+        total_tested = len(results)
+        banners_detected = sum(1 for r in results if r.get('banner_detected', False))
+        rules_matched_count = sum(len(r.get('rules_matched', [])) for r in results)
+        successful_tests = sum(1 for r in results if r.get('success', False))
+        
+        return jsonify({
+            'success': True,
+            'results': results,
+            'statistics': {
+                'total_tested': total_tested,
+                'successful_tests': successful_tests,
+                'banners_detected': banners_detected,
+                'rules_matched': rules_matched_count,
+                'success_rate': (successful_tests / total_tested * 100) if total_tested > 0 else 0,
+                'banner_detection_rate': (banners_detected / total_tested * 100) if total_tested > 0 else 0
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 def create_templates():
     """Create HTML templates."""
@@ -1248,7 +1506,8 @@ def start_response(status, headers):
 if __name__ == '__main__':
     # Get port from environment (for production) or use default
     port = int(os.environ.get('PORT', 5000))
-    host = '0.0.0.0' if os.environ.get('PORT') else '127.0.0.1'
+    # Use 0.0.0.0 for cloud deployment, 127.0.0.1 for local
+    host = '0.0.0.0' if os.environ.get('PORT') or os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('RENDER') else '127.0.0.1'
     
     print("Starting CMP Mapper Web UI...")
     print("=" * 50)
@@ -1258,4 +1517,6 @@ if __name__ == '__main__':
     print("=" * 50)
     
     # Start the Flask app
-    app.run(debug=False, host=host, port=port)
+    # Disable debug mode for production
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(debug=debug_mode, host=host, port=port)
