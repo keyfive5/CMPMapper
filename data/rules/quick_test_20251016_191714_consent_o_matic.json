@@ -1,0 +1,19 @@
+{
+  "domain": "margispharmacy.com",
+  "rules": [
+    {
+      "selector": "#PAGE_L7BJVDNL9Z",
+      "action": "hide"
+    },
+    {
+      "selector": "[data-link-type='internal']",
+      "action": "click"
+    }
+  ],
+  "metadata": {
+    "created_by": "CMP Mapper",
+    "created_at": "2025-10-17T01:35:42.714380",
+    "original_confidence": 1.0,
+    "banner_type": "modal"
+  }
+}

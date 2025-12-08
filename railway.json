@@ -3,7 +3,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "python web_ui.py",
+    "startCommand": "python cmp_mapper_pro.py",
     "healthcheckPath": "/"
   }
 }

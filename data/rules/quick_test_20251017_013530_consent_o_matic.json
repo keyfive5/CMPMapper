@@ -1,0 +1,19 @@
+{
+  "domain": "hchcfamilyhealth.org",
+  "rules": [
+    {
+      "selector": ".cookies-notification.cookies-notification--visible",
+      "action": "hide"
+    },
+    {
+      "selector": ".cookies-notification-button",
+      "action": "click"
+    }
+  ],
+  "metadata": {
+    "created_by": "CMP Mapper",
+    "created_at": "2025-10-17T01:35:42.754511",
+    "original_confidence": 0.95,
+    "banner_type": "modal"
+  }
+}

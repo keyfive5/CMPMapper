@@ -1,0 +1,26 @@
+{
+  "site": "midtowncompoundingpharmacy.ca",
+  "selectors": {
+    "banner": ".widget.widget-cookie-banner.widget-cookie-banner-cookie-1",
+    "acceptButton": "#18d03cb9-7e51-4356-b0eb-57952c53b90e-accept, .x-el.x-el-a.c1-ba.c1-2.c1-10.c1-3a.c1-1f.c1-1v.c1-dc.c1-5t.c1-e0.c1-e1.c1-6s.c1-bb.c1-y.c1-1e.c1-1s.c1-1g.c1-1t.c1-s.c1-20.c1-4.c1-ae.c1-af.c1-c2.c1-c3.c1-c4.c1-78.c1-bh.c1-bi.c1-b.c1-8n.c1-3m.c1-c5.c1-e2.c1-bj.c1-c9.c1-ca.c1-cb.c1-cc.c1-cd, [data-ux-btn='primary'], [data-ux='ButtonPrimary'], [data-aid='FOOTER_COOKIE_CLOSE_RENDERED'], [data-typography='ButtonAlpha'], [data-tccl='ux2.COOKIE_BANNER.cookie1.Group.Default.Button.Primary.261656.click,click']"
+  },
+  "actions": [
+    "hideBanner",
+    "clickAcceptIfRejectNotAvailable"
+  ],
+  "metadata": {
+    "generated_at": "2025-10-16T19:06:38.800483",
+    "generator_version": "0.1.0",
+    "confidence_score": 0.65,
+    "banner_type": "modal",
+    "button_count": 1,
+    "button_types": [
+      "accept"
+    ],
+    "has_overlays": false,
+    "tested": false,
+    "original_site": "https://midtowncompoundingpharmacy.ca/",
+    "consent_o_matic_version": "2.0",
+    "generated_by": "CMP Mapper"
+  }
+}

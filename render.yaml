@@ -3,7 +3,7 @@ services:
     name: cmp-mapper
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python web_ui.py
+    startCommand: python cmp_mapper_pro.py
     envVars:
       - key: PORT
         value: 10000

@@ -1,0 +1,29 @@
+{
+  "site": "example.com",
+  "selectors": {
+    "banner": "#cookie-consent-modal, .cookie-banner, [data-testid='cookie-banner']",
+    "acceptButton": "#accept-all-btn, .btn-accept, [data-action='accept']",
+    "rejectButton": "#reject-all-btn, .btn-reject, [data-action='reject']",
+    "manageButton": "#manage-cookies-btn, .btn-manage, [data-action='manage']",
+    "closeButton": "#close-banner, .btn-close",
+    "overlay": [".modal-overlay"]
+  },
+  "actions": [
+    "clickRejectIfPossible",
+    "hideBanner",
+    "hideOverlays"
+  ],
+  "metadata": {
+    "generated_at": "2023-12-01T10:00:00",
+    "generator_version": "0.1.0",
+    "confidence_score": 0.85,
+    "banner_type": "modal",
+    "button_count": 4,
+    "button_types": ["accept", "reject", "manage", "close"],
+    "has_overlays": true,
+    "tested": false,
+    "original_site": "example.com",
+    "consent_o_matic_version": "2.0",
+    "generated_by": "CMP Mapper"
+  }
+}

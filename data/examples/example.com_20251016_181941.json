@@ -1,0 +1,18 @@
+{
+  "url": "https://example.com",
+  "html_content": "<html lang=\"en\"><head><title>Example Domain</title><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><style>body{background:#eee;width:60vw;margin:15vh auto;font-family:system-ui,sans-serif}h1{font-size:1.5em}div{opacity:0.8}a:link,a:visited{color:#348}</style></head><body><div><h1>Example Domain</h1><p>This domain is for use in documentation examples without needing permission. Avoid use in operations.</p><p><a href=\"https://iana.org/domains/example\">Learn more</a></p></div>\n</body></html>",
+  "javascript_content": [],
+  "css_content": [
+    "body{background:#eee;width:60vw;margin:15vh auto;font-family:system-ui,sans-serif}h1{font-size:1.5em}div{opacity:0.8}a:link,a:visited{color:#348}"
+  ],
+  "screenshot_path": "data/test_results/screenshots/screenshot_example.com_20251016_181941.png",
+  "collected_at": "2025-10-16T18:19:41.633498",
+  "metadata": {
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+    "viewport_size": {
+      "width": 1920,
+      "height": 1080
+    },
+    "page_title": "Example Domain"
+  }
+}

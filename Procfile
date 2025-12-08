@@ -1,1 +1,1 @@
-web: python web_ui.py
+web: python cmp_mapper_pro.py

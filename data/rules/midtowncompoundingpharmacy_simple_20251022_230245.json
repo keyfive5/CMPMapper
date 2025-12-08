@@ -1,0 +1,27 @@
+{
+  "site": "midtowncompoundingpharmacy.ca",
+  "selectors": {
+    "banner": ".widget.widget-cookie-banner.widget-cookie-banner-cookie-1",
+    "acceptButton": "[data-ux-btn='primary']"
+  },
+  "actions": [
+    "hideBanner",
+    "clickAcceptIfRejectNotAvailable"
+  ],
+  "metadata": {
+    "generated_at": "2025-10-22T23:02:45.281127",
+    "generator_version": "0.1.0",
+    "confidence_score": 0.8,
+    "banner_type": "bottom_bar",
+    "button_count": 1,
+    "button_types": [
+      "accept"
+    ],
+    "has_overlays": false,
+    "tested": false,
+    "original_site": "https://midtowncompoundingpharmacy.ca/",
+    "consent_o_matic_version": "2.0",
+    "generated_by": "CMP Mapper (Simplified)",
+    "notes": "Simplified rule with basic selectors for better compatibility"
+  }
+}

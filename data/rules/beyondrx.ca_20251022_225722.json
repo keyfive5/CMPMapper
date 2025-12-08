@@ -1,0 +1,33 @@
+{
+  "site": "beyondrx.ca",
+  "selectors": {
+    "banner": "#shopify-pc__banner, .shopify-pc__banner__dialog, [role='alertdialog']",
+    "acceptButton": "#shopify-pc__banner__body-policy-link, #shopify-pc__banner__btn-accept, .shopify-pc__banner__btn-accept",
+    "manageButton": "#shopify-pc__banner__btn-manage-prefs, .shopify-pc__banner__btn-manage-prefs",
+    "rejectButton": "#shopify-pc__banner__btn-decline, .shopify-pc__banner__btn-decline",
+    "overlay": ".modal-overlay"
+  },
+  "actions": [
+    "hideBanner",
+    "clickRejectIfPossible",
+    "hideOverlays"
+  ],
+  "metadata": {
+    "generated_at": "2025-10-22T22:57:22.056515",
+    "generator_version": "0.1.0",
+    "confidence_score": 1.0,
+    "banner_type": "modal",
+    "button_count": 4,
+    "button_types": [
+      "accept",
+      "manage",
+      "accept",
+      "reject"
+    ],
+    "has_overlays": true,
+    "tested": false,
+    "original_site": "https://beyondrx.ca",
+    "consent_o_matic_version": "2.0",
+    "generated_by": "CMP Mapper"
+  }
+}

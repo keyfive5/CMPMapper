@@ -1,0 +1,27 @@
+{
+  "site": "margispharmacy.com",
+  "selectors": {
+    "banner": ".ideocookie-banner",
+    "acceptButton": "div a, div a"
+  },
+  "actions": [
+    "hideBanner",
+    "clickAcceptIfRejectNotAvailable"
+  ],
+  "metadata": {
+    "generated_at": "2025-10-22T22:56:30.809303",
+    "generator_version": "0.1.0",
+    "confidence_score": 1.0,
+    "banner_type": "modal",
+    "button_count": 2,
+    "button_types": [
+      "accept",
+      "accept"
+    ],
+    "has_overlays": false,
+    "tested": false,
+    "original_site": "https://margispharmacy.com",
+    "consent_o_matic_version": "2.0",
+    "generated_by": "CMP Mapper"
+  }
+}

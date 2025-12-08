@@ -84,6 +84,13 @@ class CMPFingerprinter:
                 script_patterns=['shopify', 'cdn.shopify.com'],
                 dom_patterns=['[class*="shopify-"]', '[data-shopify]']
             ),
+            'godaddy': CMPSignature(
+                name='GoDaddy Website Builder',
+                confidence=0.0,
+                indicators=['widget-cookie-banner', 'gdpr-cookie-banner', 'cookie-widget'],
+                script_patterns=['godaddy', 'secureserver.net', 'websitebuilder'],
+                dom_patterns=['[class*="widget-cookie"]', '[class*="cookie-banner"]', '[id*="cookie-banner"]']
+            ),
             'custom_generic': CMPSignature(
                 name='Custom Generic',
                 confidence=0.0,
@@ -116,7 +123,7 @@ class CMPFingerprinter:
         
         for cmp_name, signature in self.cmp_signatures.items():
             confidence, indicators = self._calculate_confidence(
-                signature, script_content, dom_elements, soup
+                signature, script_content, dom_elements, soup, cmp_name
             )
             
             if confidence > best_confidence:
@@ -178,7 +185,7 @@ class CMPFingerprinter:
         return elements
     
     def _calculate_confidence(self, signature: CMPSignature, script_content: str, 
-                           dom_elements: Dict, soup: BeautifulSoup) -> Tuple[float, List[str]]:
+                           dom_elements: Dict, soup: BeautifulSoup, cmp_key: str = None) -> Tuple[float, List[str]]:
         """Calculate confidence score for a CMP signature."""
         confidence = 0.0
         detected_indicators = []
@@ -206,15 +213,19 @@ class CMPFingerprinter:
                 detected_indicators.append(f"Indicator: {indicator}")
         
         # Check for CMP-specific button patterns
-        button_patterns = self._get_cmp_button_patterns(signature.name)
-        for pattern in button_patterns:
-            if soup.select(pattern):
-                confidence += 0.1
-                detected_indicators.append(f"Button: {pattern}")
+        if cmp_key:
+            button_patterns = self._get_cmp_button_patterns(cmp_key)
+            for pattern in button_patterns:
+                try:
+                    if soup.select(pattern):
+                        confidence += 0.1
+                        detected_indicators.append(f"Button: {pattern}")
+                except:
+                    pass
         
         return min(confidence, 1.0), detected_indicators
     
-    def _get_cmp_button_patterns(self, cmp_name: str) -> List[str]:
+    def _get_cmp_button_patterns(self, cmp_key: str) -> List[str]:
         """Get CMP-specific button patterns."""
         button_patterns = {
             'cookieyes': ['.cky-btn', '.cky-btn-accept', '.cky-btn-decline'],
@@ -222,9 +233,10 @@ class CMPFingerprinter:
             'cookiebot': ['.CybotCookiebotDialogBodyButton', '.CybotCookiebotDialogBodyLevelButtonLevel3'],
             'consentmanager': ['.cm-btn', '.cm-accept-all', '.cm-decline-all'],
             'tarteaucitron': ['.tarteaucitronAllow', '.tarteaucitronDeny'],
+            'godaddy': ['button[id*="accept"]', 'button[id*="cookie"]', '[class*="cookie-banner"] button', '[id*="cookie-banner"]'],
             'custom_generic': ['button[class*="accept"]', 'button[class*="decline"]', 'a[class*="cookie"]']
         }
-        return button_patterns.get(cmp_name, [])
+        return button_patterns.get(cmp_key, [])
     
     def _detect_generic_patterns(self, soup: BeautifulSoup) -> Tuple[float, List[str]]:
         """Detect generic consent banner patterns."""

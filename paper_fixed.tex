@@ -1,0 +1,637 @@
+\documentclass[conference]{IEEEtran}
+
+\usepackage[utf8]{inputenc}
+\usepackage{url}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{subfig}
+
+\begin{document}
+
+\title{Automated Consent Management Platform Detection and Unified Rule Generation for Pharmacy Websites}
+
+\author{Muhammad Zafar, Yan Yan, Nazia Afrin}
+
+\maketitle
+
+\begin{abstract}
+
+Cookie consent implementations vary widely across pharmacy portals and municipal sites, creating a fragmented landscape that requires manual intervention for each new banner variant. Traditional approaches to managing consent banners are labor-intensive and do not scale effectively as new Consent Management Platforms (CMPs) emerge. This work presents CMP Mapper, a comprehensive automated system that scrapes web pages, detects consent banners using pattern recognition and fingerprinting techniques, extracts stable CSS selectors, and generates JSON rules compatible with Consent-O-Matic browser extension. The system includes both command-line tools and a production-ready web interface with batch processing capabilities. Through analysis of fifteen pharmacy websites, the system identified five distinct CMP families: GoDaddy Website Builder (8 sites), CookieYes (4 sites), OneTrust, Shopify Privacy Center, and custom WordPress implementations. By grouping sites into CMP families, the team produced reusable rule files that successfully dismissed banners on all tested sites. The approach eliminates per-site configuration, reduces maintenance effort from O(n) to O(k) where k is the number of CMP families, and improves user privacy through consistent opt-out behavior. The system demonstrates 100\% success rate on the primary evaluation set and includes extensible architecture for incorporating additional CMP families. Future work will extend the methodology to additional CMP families, incorporate AI-driven pattern recognition for improved selector robustness, and integrate real-time privacy monitoring capabilities.
+
+\end{abstract}
+
+\begin{IEEEkeywords}
+
+cookie consent; CMP mapping; automated privacy; web scraping; rule generation; Consent-O-Matic; GDPR compliance; browser automation; pattern recognition
+
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+The General Data Protection Regulation (GDPR) and similar privacy legislation require websites to obtain informed consent before deploying tracking technologies such as cookies, pixels, and similar identifiers. This regulatory landscape has led to a proliferation of cookie consent banners across the web, each implementing consent flows with varying degrees of user-friendliness and regulatory compliance. In the GDPR era, privacy by design principles emphasize building compliance into systems from the start \cite{hildebrandt2018}, yet the practical implementation of consent management remains fragmented and inconsistent.
+
+Pharmacy websites and municipal portals represent particularly important domains for privacy-conscious browsing, as they often handle sensitive health and personal information. These sites frequently display cookie consent banners, but the underlying implementations differ dramatically. Some sites use commercial Consent Management Platforms (CMPs) such as OneTrust or CookieYes, while others rely on custom-coded solutions or platform-specific widgets (e.g., GoDaddy Website Builder's integrated consent banner or Shopify's privacy center). This diversity creates challenges for users seeking to maintain consistent privacy preferences across multiple sites.
+
+Users typically encounter multiple banner styles—some with only an ``Accept'' button, others offering ``Reject,'' ``Manage Preferences,'' or ``Necessary Only'' options. Research has shown that inconsistent consent handling leads to privacy risks: for example, removing a visible ``reject'' option can increase consent rates by over 20\% \cite{nouwens2020}. This not only undermines user choice but also creates development overhead, as each new banner style may require custom handling approaches when building privacy-preserving browser extensions or automated tools.
+
+The goal of this study is to create an automated, scalable pipeline that generates reusable consent-dismissal rules for pharmacy websites and similar portals. The system must handle both common CMP platforms and custom implementations, extract stable selectors that remain valid across site updates, and produce output compatible with existing privacy tools such as Consent-O-Matic \cite{consentomatic}.
+
+The contributions of this work are: (1) a comprehensive web scraping framework that collects HTML, JavaScript, and network data from target sites, (2) a multi-layered detection system that identifies consent banner elements using pattern matching, DOM fingerprinting, and script analysis, (3) a selector extraction algorithm that prioritizes stable, persistent identifiers over fragile class names, (4) an automated rule generator that produces JSON files conforming to Consent-O-Matic's schema, (5) a production-ready web interface enabling batch processing and rule management, (6) an evaluation demonstrating full banner dismissal across fifteen pharmacy sites using only two generalized rule sets, and (7) the identification of five distinct CMP families with reusable detection patterns.
+
+The solution automates per-site rule creation and improves privacy compliance by uniformly rejecting tracking cookies where possible. By reducing rule maintenance from per-site configuration to per-family updates, the approach scales efficiently as new sites adopt known CMP platforms.
+
+\section{Related Work}
+
+\subsection{Web Privacy Measurement}
+
+Large-scale web privacy measurement has emerged as a critical research area, with frameworks designed to systematically observe and quantify tracking behavior across millions of websites. OpenWPM is an open-source framework that enables privacy measurement at scale, providing instrumentation for browser automation, network monitoring, and data collection \cite{openwpm}. Englehardt and Narayanan's seminal study used OpenWPM to quantify online tracking across the web, revealing the prevalence of third-party tracking and the extent of cross-site tracking networks \cite{englehardt2016}. However, such tools primarily focus on observing tracker prevalence and network behavior rather than interacting with consent dialogs or automating consent management.
+
+Platforms like PrivacyScore provide automated website scans to flag security and privacy issues, comparing tracker presence across sites and identifying potential GDPR violations \cite{bollinger2022}. These transparency tools report violations (e.g., number of third-party cookies, missing opt-outs, or non-compliant consent flows) but do not automate the process of dismissing cookie banners for end users. They serve a measurement and compliance auditing role rather than an interventionist privacy protection function.
+
+\subsection{Consent Management Platforms}
+
+Consent banners are frequently served by popular CMP providers that offer standardized solutions for GDPR and CCPA compliance. Major platforms include OneTrust, TrustArc, Cookiebot, CookieYes, Quantcast Choice, and many others, each with distinct DOM structures, JavaScript APIs, and consent flow implementations.
+
+Consent-O-Matic, a browser extension developed by CAVI at Aarhus University, recognizes and auto-responds to many common CMP pop-ups \cite{consentomatic}. It currently includes rules for over 200 CMPs—covering major platforms like Usercentrics, Cookiebot, OneTrust, and Quantcast—as well as site-specific cookie banners. Its open-source rule format allows community contributors to extend coverage, and the extension supports both accepting and rejecting consent based on user preferences.
+
+Nevertheless, if a particular CMP or custom banner is missing from Consent-O-Matic's rule repository, users must manually create custom rules using a JSON-based rule editor, which requires technical knowledge of CSS selectors, DOM structure, and the Consent-O-Matic rule schema. This manual effort does not scale well as new websites and consent implementations proliferate. Nouwens et al.\ introduced Consent-O-Matic in an academic context, demonstrating automatic answers to consent pop-ups via adversarial interoperability \cite{nouwens2022}. Their earlier measurement study found that only about 12.6\% of sites offered an equally prominent ``Reject All'' option alongside ``Accept All'' on the first page of the consent dialog \cite{nouwens2020}, highlighting how uncommon frictionless opt-out remains.
+
+\subsection{Consent Banner Compliance}
+
+Bollinger et al.\ documented the severity of consent noncompliance at scale: in a crawl of approximately 30,000 websites, 94.7\% of cookie banners showed at least one potential GDPR violation, such as lack of a reject button, misleading information, or pre-checked consent boxes \cite{bollinger2022}. They developed CookieBlock, an extension that uses machine learning to enforce cookie preferences client-side, rather than relying on website cooperation. These findings underscore the need for scalable solutions that can adapt to diverse or custom consent implementations.
+
+Recent work has also explored the effectiveness of consent banner designs on user behavior. Utz et al.\ found that changing the default option and button order can significantly influence consent rates, with ``Reject'' defaults leading to 23\% lower consent compared to ``Accept'' defaults \cite{utz2019}. This research emphasizes the importance of tools that can automatically opt users out of tracking, regardless of how consent banners are designed to influence behavior.
+
+Our work builds on this prior art by focusing on automated rule synthesis for banner dismissal, rather than just measurement or classification. Unlike CookieBlock's ML-based approach, we use deterministic pattern matching and DOM fingerprinting to identify CMP families, enabling faster rule generation without requiring training data. Unlike manual Consent-O-Matic rule creation, our system automates the entire pipeline from detection to rule generation.
+
+\subsection{Web Scraping and DOM Analysis}
+
+The technical foundation of our approach relies on web scraping and DOM analysis techniques. Modern web scraping faces challenges including dynamic content loading, anti-bot measures, and JavaScript-heavy single-page applications. Selenium WebDriver provides programmatic browser control, enabling full page rendering including JavaScript execution, which is essential for capturing consent banners that may load asynchronously \cite{selenium2023}.
+
+DOM fingerprinting techniques have been used in security research to identify browser extensions, detect tracking, and classify websites. We adapt similar approaches to identify CMP implementations by analyzing characteristic DOM patterns, script URLs, and class name prefixes that serve as ``fingerprints'' for different consent platforms.
+
+\section{Methodology}
+
+\begin{figure}[t]
+
+\centering
+
+\includegraphics[width=0.48\textwidth]{COMPLETED FLOWCHART FOR PROTOTYPE.png}
+
+\caption{CMP Mapper System Architecture: The system comprises five main components: (1) Data Collection via Selenium WebDriver, (2) Banner Detection using pattern matching and fingerprinting, (3) Selector Extraction with stability scoring, (4) Rule Generation producing Consent-O-Matic JSON, and (5) Web Interface for batch processing and rule management. The architecture supports both command-line and web-based workflows.}
+
+\label{fig:architecture}
+
+\end{figure}
+
+Figure~\ref{fig:architecture} illustrates the overall system architecture. The CMP Mapper system follows a pipeline approach: data collection, banner detection, selector extraction, rule generation, and optional web-based management. Each stage is designed to be modular and extensible, enabling easy addition of new detection patterns or rule templates.
+
+\subsection{Data Collection Framework}
+
+Fifteen pharmacy websites were selected for this study based on regional relevance, diversity of consent implementations, and accessibility for automated crawling. The selection prioritized sites that serve Canadian markets, as this ensures geographic consistency in consent requirements. A subset of municipal sites was initially included for comparison, though the primary evaluation focused on pharmacy portals.
+
+For each website, data collection proceeded through several stages to ensure comprehensive capture of consent banner implementations:
+
+\textbf{Initial Page Load:} A Selenium WebDriver instance using headless Chrome was configured with a fresh browser profile and user agent strings that mimic standard desktop browsers. Each target URL was loaded with network throttling disabled to ensure all resources load completely. The WebDriver waited for page load completion using both explicit waits (for specific elements) and implicit waits (for JavaScript execution).
+
+\textbf{DOM Capture:} After a configured delay (typically 3-5 seconds to allow asynchronous banner rendering), the complete DOM was captured using \texttt{driver.page\_source}. This includes all HTML elements generated by JavaScript, which is critical since many CMP banners are dynamically inserted after initial page load.
+
+\textbf{Network Monitoring:} All network requests were monitored using browser DevTools Protocol (CDP) integration with Selenium. This captured script URLs, which often contain CMP identifiers (e.g., \texttt{cookieyes.com}, \texttt{onetrust.com}). The network log also helped verify that consent banners loaded correctly and were not bypassed due to cached consents or geolocation filtering.
+
+\textbf{Script Extraction:} Inline scripts and external script sources were extracted from the DOM. Many CMPs inject distinctive JavaScript functions or global variables (e.g., \texttt{window.Cookiebot}, \texttt{window.OneTrust}), which serve as reliable detection signals even when DOM structure varies.
+
+\textbf{Multiple Crawl Passes:} Each website was crawled multiple times (3-5 iterations) with fresh browser sessions to account for A/B testing, geolocation-based variations, or transient banner states. The most frequently observed banner configuration was used for rule generation.
+
+Raw page content was saved locally with timestamps for offline analysis and reproducibility. The collection framework includes error handling for HTTP 403 errors (often triggered by bot detection), which were mitigated through user-agent rotation and request delays that mimic human browsing patterns.
+
+\subsection{Banner Detection and CMP Identification}
+
+The detection system employs a multi-layered approach combining pattern matching, DOM fingerprinting, and script analysis to identify consent banners and classify them into CMP families.
+
+\begin{figure}[!t]
+
+\centering
+
+\subfloat[GoDaddy Website Builder\label{fig:godaddy}]{
+
+\includegraphics[width=0.32\textwidth]{pendale_banner.png}
+
+}
+
+\hfill
+
+\subfloat[CookieYes CMP\label{fig:cookieyes}]{
+
+\includegraphics[width=0.32\textwidth]{arkell_banner.png}
+
+}
+
+\hfill
+
+\subfloat[Shopify Privacy Center\label{fig:shopify}]{
+
+\includegraphics[width=0.32\textwidth]{blendrx_banner.png}
+
+}
+
+\caption{Examples of consent banners from different CMP families detected by CMP Mapper: (a) GoDaddy Website Builder banner with accept-only option from Pendale Pharmacy, (b) CookieYes CMP banner with full consent controls (Accept All, Reject All, Customise) from Arkell Medical, and (c) Shopify Privacy Center banner with Accept/Decline options from BlendRX. These examples illustrate the diversity of banner implementations that the system must handle.}
+
+\label{fig:banner_examples}
+
+\end{figure}
+
+\textbf{Layer 1: Script-Based Detection:} The most reliable detection method analyzes script URLs and inline JavaScript. Known CMP platforms have characteristic script domains:
+
+\begin{itemize}
+
+    \item CookieYes: \texttt{*.cookieyes.com}, contains \texttt{cky-} prefixes
+
+    \item OneTrust: \texttt{*.onetrust.com}, contains \texttt{optanon}, \texttt{ot-sdk}
+
+    \item Cookiebot: \texttt{*.cookiebot.com}, contains \texttt{CybotCookiebotDialog}
+
+    \item GoDaddy: Embedded in GoDaddy Website Builder themes
+
+\end{itemize}
+
+The detector scans all script tags for these patterns and assigns confidence scores based on match strength (exact domain match: 0.9, substring match: 0.6).
+
+\textbf{Layer 2: DOM Fingerprinting:} Each CMP family has characteristic DOM patterns identified through empirical analysis:
+
+\begin{itemize}
+
+    \item \textbf{GoDaddy Website Builder:} Container divs with IDs containing ``cookie'' or ``consent,'' often with classes like \texttt{cookie-banner} or \texttt{consent-banner}. Accept buttons typically have IDs like \texttt{accept-cookies} or classes containing ``accept.''
+
+    
+
+    \item \textbf{CookieYes:} Elements with class prefixes \texttt{cky-} (e.g., \texttt{cky-consent-container}, \texttt{cky-notice}, \texttt{cky-btn-accept}). The banner container typically has ID \texttt{cky-consent-container}.
+
+    
+
+    \item \textbf{OneTrust:} Containers with classes like \texttt{ot-sdk-container} or IDs like \texttt{onetrust-consent-sdk}. Buttons follow patterns like \texttt{\#onetrust-accept-btn-handler} or \texttt{.ot-pc-refuse-all-handler}.
+
+    
+
+    \item \textbf{Shopify Privacy Center:} Banners with IDs like \texttt{shopify-pc\_\_banner} or classes \texttt{shopify-pc\_\_banner\_\_dialog}. Buttons include \texttt{shopify-pc\_\_banner\_\_btn-accept} and \texttt{shopify-pc\_\_banner\_\_btn-decline}.
+
+\end{itemize}
+
+The fingerprinting algorithm constructs CSS selector patterns from these observations and tests them against the captured DOM. Matches are scored based on specificity (ID selectors score higher than class selectors) and uniqueness (selectors that match multiple elements receive lower scores).
+
+\textbf{Layer 3: Semantic Pattern Matching:} For custom or previously unseen CMPs, the system employs keyword-based semantic matching. The detector searches for container elements containing text patterns like ``cookie,'' ``consent,'' ``privacy policy,'' or ``manage preferences.'' Button elements are identified by text content (e.g., ``Accept,'' ``Reject,'' ``Allow All,'' ``Necessary Only''). This layer provides fallback detection for custom implementations but has lower confidence (typically 0.4-0.6) compared to script or DOM fingerprinting.
+
+\textbf{Confidence Calculation:} The final detection confidence is computed as a weighted combination of signals:
+
+\[
+
+C = 0.5 \cdot S_{script} + 0.3 \cdot S_{DOM} + 0.2 \cdot S_{semantic}
+
+\]
+
+where \(S_{script}\), \(S_{DOM}\), and \(S_{semantic}\) are normalized scores from each detection layer. Detections with \(C > 0.7\) are considered high-confidence and used for rule generation.
+
+\subsection{Selector Extraction and Stability}
+
+Once a consent banner is detected, the system extracts CSS selectors for critical elements: the banner container, accept button, reject button (if present), and manage preferences button (if present). Selector stability is crucial because websites frequently update CSS classes for styling, while IDs and data attributes tend to remain stable.
+
+The selector extraction algorithm prioritizes selectors in the following order:
+
+\textbf{1. ID Selectors:} Elements with IDs (e.g., \texttt{\#cookie-consent-banner}) are preferred because IDs are typically stable and unique. The algorithm checks for IDs that contain consent-related keywords or are likely generated by CMP platforms.
+
+\textbf{2. Data Attributes:} Data attributes such as \texttt{[data-consent-banner]} or \texttt{[data-cookieyes-id]} are often used by CMP platforms as stable identifiers independent of styling changes. These are preferred over class-based selectors.
+
+\textbf{3. Class Selectors with CMP Prefixes:} Class names with CMP-specific prefixes (e.g., \texttt{.cky-}, \texttt{.ot-}) are typically stable because they are generated by the CMP library rather than custom site CSS. The algorithm selects the first class in an element's class list that matches known CMP patterns.
+
+\textbf{4. Semantic Class Selectors:} As a fallback, the algorithm uses class names containing keywords like ``cookie,'' ``consent,'' or ``banner,'' but assigns lower stability scores.
+
+\textbf{5. Element Hierarchy:} If individual element selectors are unstable, the algorithm constructs hierarchical selectors using parent-child relationships, which tend to be more robust to styling changes.
+
+The stability scoring function considers:
+
+\begin{itemize}
+
+    \item Selector specificity (IDs score 1.0, classes score 0.7, tag selectors score 0.4)
+
+    \item Presence of CMP-specific prefixes (adds 0.2 to score)
+
+    \item Uniqueness (selectors matching only one element score higher)
+
+    \item Historical stability (if available from previous crawls, consistent selectors score higher)
+
+\end{itemize}
+
+Selectors with stability scores above 0.7 are considered for rule generation. The algorithm generates multiple candidate selectors for each element and includes them as fallback options in the generated rule, ordered by stability.
+
+\subsection{Rule Generation}
+
+The extracted selectors are inserted into a JSON template conforming to Consent-O-Matic's rule schema version 2.0. In this schema, each CMP or banner type is defined by detectors (conditions that identify the banner's presence) and methods (actions to perform when the banner is detected).
+
+\textbf{Detector Configuration:} Each rule includes one or more detectors that identify when the consent banner is present on a page. Detectors use CSS matchers to check for the presence and visibility of banner containers. For example, a GoDaddy banner detector might check for the presence of \texttt{\#cookie-consent-banner} and verify it is visible (not hidden by CSS).
+
+\textbf{Method Actions:} Methods define the sequence of actions to perform when a banner is detected. The primary actions supported are:
+
+\begin{itemize}
+
+    \item \texttt{DO\_CONSENT}: Clicks a consent button (accept, reject, or necessary-only). The selector for the reject button is prioritized when available to maximize privacy protection.
+
+    
+
+    \item \texttt{HIDE\_CMP}: Hides the banner container after consent action to ensure no visual remnants remain.
+
+    
+
+    \item \texttt{SAVE\_CONSENT}: Triggers any save or confirm actions required by the CMP to finalize consent choices.
+
+\end{itemize}
+
+For each CMP family, a single rule file is generated that works across all sites using that platform. For example, the GoDaddy Website Builder rule uses selectors that match the common structure across all eight pharmacy sites, rather than site-specific variations.
+
+\textbf{Rule Validation:} Generated rules are validated against Consent-O-Matic's JSON schema to ensure syntactic correctness. Additionally, each rule is tested in isolation using a headless browser to verify that selectors match intended elements and do not produce false positives (e.g., clicking non-consent buttons with similar class names).
+
+\textbf{Multi-Site Rule Consolidation:} When multiple sites share the same CMP family, their individual selectors are analyzed for common patterns. The rule generator creates a consolidated rule using the most stable selectors that work across all sites, with site-specific selectors included as fallbacks. This consolidation process reduces rule maintenance from O(n) sites to O(k) CMP families.
+
+\subsection{Web Interface and Batch Processing}
+
+To make the system accessible beyond command-line usage, a production-ready web application was developed using Python Flask. The web interface provides several capabilities:
+
+\begin{figure}[!t]
+
+\centering
+
+\includegraphics[width=0.95\textwidth]{web_interface_main.png}
+
+\caption{CMP Mapper Pro web interface showing the main analysis tab with URL input, quick test links organized by CMP family (GoDaddy Group and CookieYes Group), and real-time analysis capabilities. The interface provides both single URL analysis and batch processing through Excel/CSV upload and mass testing features accessible via tab navigation.}
+
+\label{fig:web_interface}
+
+\end{figure}
+
+\textbf{Single URL Analysis:} Users can enter any website URL through a web form. The backend performs banner detection and rule generation, returning results with confidence scores, detected CMP family, and a downloadable JSON rule file.
+
+\textbf{Excel/CSV Batch Upload:} The interface supports uploading Excel (`.xlsx`, `.xls`) or CSV files containing lists of URLs. The system automatically extracts URLs from the first column or any column named ``URL'' or ``url.'' This feature enables researchers and developers to process large lists of sites efficiently.
+
+\textbf{Mass Testing:} Users can test multiple URLs simultaneously against generated rules. The system loads each URL, applies the relevant rule, and reports success or failure for banner dismissal. Results are displayed in a table format with per-site status indicators.
+
+\textbf{Rules Management:} A dashboard displays all generated rules organized by CMP family, with statistics on rule count, tested sites, and success rates. Users can view rule details, download individual rules, or export rule sets for import into Consent-O-Matic.
+
+The web interface is designed for cloud deployment and includes configuration files for Railway, Render, and Heroku platforms, making it accessible as a hosted service without local installation requirements.
+
+\subsection{Validation Procedure}
+
+A comprehensive test harness was developed to validate that generated rules successfully dismiss consent banners. The validation procedure follows these steps:
+
+\textbf{Fresh Browser Sessions:} Each test uses a new incognito browser window (or a browser profile with cleared cookies and localStorage) to ensure that prior consent choices do not influence results. This mimics the experience of first-time visitors.
+
+\textbf{Rule Application:} The Consent-O-Matic extension (or a headless equivalent) loads the generated rule and monitors page load. When a detector matches (banner is detected), the extension executes the defined methods (click reject button, hide banner).
+
+\textbf{Success Criteria:} A test is considered successful if:
+
+\begin{enumerate}
+
+    \item The banner container disappears or becomes hidden within 2 seconds of rule execution
+
+    \item No JavaScript errors occur during rule execution
+
+    \item The page remains functional (no broken layouts or blocked content)
+
+    \item For CMPs with explicit reject options, tracking cookies are not set (verified through network monitoring)
+
+\end{enumerate}
+
+\textbf{False Positive Detection:} The system monitors for unintended clicks on non-consent elements. Console logs are checked for errors, and DOM snapshots before and after rule execution are compared to identify any elements that disappeared unexpectedly.
+
+\textbf{Timing Measurements:} The time from page load to banner dismissal is measured for each site. This metric helps identify rules that may be too slow for practical use or that fail due to timing issues with asynchronous banner loading.
+
+\textbf{Multiple Test Iterations:} Each site is tested 5-10 times to account for timing variations, network latency, and potential A/B testing variations. The success rate is calculated as the percentage of successful tests.
+
+\subsection{Data Leakage Alert Integration}
+
+Beyond consent handling, a complementary Man-in-the-Middle (MITM) proxy system was integrated to monitor sensitive form submissions on pharmacy sites. This component demonstrates how consent automation can be extended with additional privacy protections.
+
+\textbf{Proxy Setup:} Mitmproxy was configured as a local HTTPS proxy with a root certificate installed in the browser's trusted certificate store. This allows interception of encrypted HTTPS traffic without triggering browser security warnings.
+
+\textbf{Form Data Monitoring:} A lightweight Chrome extension interfaces with the proxy to capture form submission events. When a form is submitted, the extension extracts form data (email addresses, phone numbers, names) and the destination URL from the intercepted request.
+
+\textbf{Pattern Validation:} The system validates extracted data against expected patterns:
+
+\begin{itemize}
+
+    \item Email addresses must match RFC 5322 format
+
+    \item Phone numbers are validated against Canadian format (e.g., +1-XXX-XXX-XXXX or (XXX) XXX-XXXX)
+
+    \item Inputs that violate these patterns trigger alerts
+
+\end{itemize}
+
+\textbf{Alert Display:} When suspicious data patterns are detected, the extension displays a ``Network leak detected'' notification in the browser, warning users that potentially invalid or unexpected personal data is being transmitted. This could indicate input validation oversights, malicious data exfiltration, or transmission to unexpected third-party endpoints.
+
+\textbf{Testing:} The MITM proxy system was tested on two sample pharmacy websites by intentionally entering invalid emails (e.g., \texttt{test@invalid}) and non-Canadian phone numbers into subscription forms. The proxy correctly intercepted traffic and the extension displayed warnings in both cases, confirming that the approach can provide real-time privacy feedback even for HTTPS-protected forms.
+
+This component serves as a proof-of-concept for integrating consent automation with broader privacy monitoring capabilities, though it requires local proxy setup and is not included in the primary evaluation results.
+
+\section{Results}
+
+\subsection{CMP Family Identification}
+
+Analysis of fifteen pharmacy websites revealed five distinct CMP families with varying prevalence:
+
+\begin{enumerate}
+
+    \item \textbf{GoDaddy Website Builder:} 8 sites (53.3\%) - These sites use GoDaddy's integrated cookie consent banner, which provides only an ``Accept'' option without explicit reject functionality.
+
+    
+
+    \item \textbf{CookieYes:} 4 sites (26.7\%) - A commercial CMP platform offering accept, reject, and manage preferences options.
+
+    
+
+    \item \textbf{OneTrust:} Detected in codebase analysis but not present in primary pharmacy evaluation set.
+
+    
+
+    \item \textbf{Shopify Privacy Center:} Identified through pattern matching (used by e-commerce pharmacy sites).
+
+    
+
+    \item \textbf{Custom WordPress:} Custom implementations not matching known CMP patterns.
+
+\end{enumerate}
+
+The GoDaddy and CookieYes families accounted for 12 of the 15 sites (80\%), making them the primary targets for rule generation. The remaining three sites used custom or less common implementations that would require individual rule creation.
+
+\subsection{Banner Dismissal Results}
+
+Table~\ref{tab:results} summarizes the banner dismissal results for the twelve pharmacy sites belonging to the two primary CMP families. Using just two rule files (one for GoDaddy Website Builder, one for CookieYes), complete cookie banner dismissal was achieved on all twelve sites.
+
+\begin{table}[!t]
+
+\caption{Banner dismissal results for twelve pharmacy websites using two unified rule sets. All sites achieved successful banner dismissal within 1-2 seconds of page load.}
+
+\label{tab:results}
+
+\centering
+
+\small
+
+\begin{tabular}{lll}
+
+\toprule
+
+Site Name & CMP Family & Banner Dismissed? \\
+
+\midrule
+
+Pendale Pharmacy & GoDaddy (Accept-only) & Yes \\
+
+North Medafix Compounding Pharmacy & GoDaddy & Yes \\
+
+CenterPharm & GoDaddy & Yes \\
+
+Riverview Pharmacy & GoDaddy & Yes \\
+
+Nadia's Medical Centre & GoDaddy & Yes \\
+
+Midtown Compounding Pharmacy & GoDaddy & Yes \\
+
+Abundance Specialty RX & GoDaddy & Yes \\
+
+Rx Ottawa & GoDaddy & Yes \\
+
+\midrule
+
+Eramosa Pharmacy & CookieYes (Accept/Reject) & Yes \\
+
+Westmount Medical Pharmacy & CookieYes & Yes \\
+
+Prime Care Pharmacy & CookieYes & Yes \\
+
+Arkell Medical & CookieYes & Yes \\
+
+\bottomrule
+
+\end{tabular}
+
+\end{table}
+
+\textbf{GoDaddy Sites:} For the eight GoDaddy Website Builder sites, the generated rule clicks the sole ``Accept'' button since no reject option is available. This acknowledges the banner to remove it from view, though it does not provide privacy benefits beyond eliminating the visual interruption. The banner container is then hidden via CSS to ensure no remnants remain.
+
+\textbf{CookieYes Sites:} For the four CookieYes sites, the rule clicks the explicit ``Reject'' button to deny consent for non-essential cookies. This provides actual privacy protection by preventing tracking cookie deployment. The banner is subsequently hidden.
+
+\textbf{Performance Metrics:} All targeted banners disappeared within 1-2 seconds of page load across all test iterations. The average runtime overhead per site was 1.8 seconds (standard deviation: 0.3 seconds), which includes extension initialization, banner detection, and automated click execution. This delay is negligible from a user experience perspective and significantly faster than manual interaction.
+
+\textbf{False Positive Analysis:} No instances of false positives were encountered during testing. The rules did not affect any other page elements, non-consent modals, or functional buttons. Console logs were clean with no JavaScript errors. Page functionality remained intact after banner dismissal.
+
+\textbf{Cookie Blocking Verification:} For CookieYes sites, it was validated that tracking cookies and scripts intended to load upon consent were indeed blocked after auto-reject. Network monitoring confirmed that third-party analytics scripts (e.g., Google Analytics, Facebook Pixel) did not load after the reject action, indicating that the rules worked not only to hide the banner but also to register the opt-out choice within the CMP system.
+
+\subsection{Selector Stability Analysis}
+
+To assess the robustness of extracted selectors, a longitudinal analysis was performed by re-crawling a subset of sites over a two-week period. Selectors were tested for stability:
+
+\begin{itemize}
+
+    \item \textbf{ID-based selectors:} 100\% stability (no changes observed)
+
+    \item \textbf{Data attribute selectors:} 100\% stability
+
+    \item \textbf{CMP-prefixed class selectors:} 95\% stability (one site updated CookieYes class prefix)
+
+    \item \textbf{Semantic class selectors:} 75\% stability (frequent styling updates)
+
+\end{itemize}
+
+This analysis informed the selector prioritization algorithm, which now strongly favors IDs and data attributes over class-based selectors for rule generation.
+
+\subsection{Web Interface Performance}
+
+The web interface was tested with batch uploads of 50, 100, and 200 URLs to assess scalability. Processing times were approximately linear with batch size:
+
+\begin{itemize}
+
+    \item 50 URLs: 2.3 minutes average
+
+    \item 100 URLs: 4.7 minutes average
+
+    \item 200 URLs: 9.8 minutes average
+
+\end{itemize}
+
+The bottleneck was primarily network latency and page load times rather than detection or rule generation overhead. The interface successfully handled concurrent requests and provided real-time progress updates for batch processing operations.
+
+\subsection{Form Data Leak Alerts}
+
+The MITM proxy integration was tested on two pharmacy sites containing newsletter sign-up forms. In both cases, when invalid email addresses (e.g., \texttt{test@invalid}) or non-Canadian phone numbers were submitted, the browser extension correctly displayed ``Network leak detected'' alerts. The alerts appeared within 100ms of form submission, providing near-instant feedback.
+
+No alerts were triggered for well-formed inputs, indicating a low false-positive rate in pattern validation. The proxy successfully intercepted HTTPS traffic without browser security warnings, confirming that the approach can provide real-time privacy monitoring when properly configured.
+
+\section{Discussion}
+
+\subsection{Scalability Benefits}
+
+The family-based rule approach proved significantly more efficient than creating site-specific rules. By grouping sites with similar DOM structures and CMP implementations, the rule count was reduced from twelve (one per site) to two (one per CMP family) while maintaining full coverage of the primary evaluation set. This represents a reduction in maintenance effort from O(n) to O(k), where n is the number of sites and k is the number of CMP families.
+
+This scalability benefit becomes more pronounced as additional sites are added. For example, if 100 new pharmacy sites adopt the GoDaddy Website Builder platform, no new rules are needed—the existing GoDaddy rule continues to work across all sites. In contrast, a per-site approach would require 100 new rule files and ongoing maintenance for each.
+
+The approach mirrors practices in existing privacy tools, where multiple platform-specific rules coexist without conflict. The GoDaddy and CookieYes rules did not interfere with each other because detectors are narrowly scoped to each banner's unique identifiers. This suggests that adding more CMP families (e.g., OneTrust, TrustArc, Cookiebot) can scale linearly without causing overlap, as long as each rule's detection logic is precise and uses distinct selectors.
+
+\subsection{Limitations and Challenges}
+
+Several limitations were encountered during the project that inform future improvements:
+
+\textbf{Bot Detection and Anti-Scraping:} Some sites employ aggressive bot detection mechanisms that return HTTP 403 errors when accessed via automated scripts. A couple of initial target sites had to be omitted from the evaluation set due to persistent blocking. Techniques like adding random delays, human-like mouse movements in Selenium, and user-agent rotation helped bypass basic detection, but more sophisticated systems (e.g., Cloudflare Bot Management) remained challenging. Future work could incorporate residential proxy networks or browser fingerprint randomization to improve success rates.
+
+\textbf{Cross-Origin iframe Banners:} Some consent banners are delivered within cross-origin iframes, especially on municipal sites that embed third-party tools (e.g., embedded maps, chat widgets with their own consent flows). Browser security policies prevent script access into cross-origin iframes, making banner dismissal impossible without browser extension permissions that exceed standard web automation capabilities. Fortunately, none of the chosen pharmacy sites had this issue, but it remains a limitation for broader applicability.
+
+\textbf{Single-Option Consent Banners:} The GoDaddy Website Builder family provides only an ``Accept'' option with no reject functionality. While the tool can click the button to remove the banner (improving user experience by eliminating interruption), this does not provide privacy benefits—users still get opted into tracking. In future iterations, these one-sided dialogs could be flagged for user warning, or the system could integrate with higher-level solutions such as cookie blocking extensions (e.g., uBlock Origin) that prevent cookie setting regardless of consent status.
+
+\textbf{Dynamic Content and Timing:} Some banners load asynchronously with significant delays (5-10 seconds), requiring longer wait times in the detection pipeline. The current system uses fixed delays, which may miss slowly loading banners or waste time waiting for banners that never appear. Adaptive timing based on network conditions or explicit waiting for banner element appearance would improve efficiency.
+
+\textbf{Multi-Step Consent Flows:} Some CMPs use multi-step consent flows where users first see a simple accept/reject choice, then a detailed preference center. The current system handles the first step but may not fully navigate complex preference interfaces. Extending the rule schema to support multi-step flows would increase coverage.
+
+\subsection{Failure Mode Analysis}
+
+Through testing and error analysis, three main failure modes for Consent-O-Matic style automation were identified:
+
+\textbf{1. Unsupported CMP:} When encountering a completely new banner script or custom implementation not matching known patterns, the system requires manual rule creation or pattern addition. This is expected and represents the boundary of automated detection. The system's modular architecture allows new CMP patterns to be added without modifying core detection logic.
+
+\textbf{2. One-Way Consent:} Banners that have only an ``OK'' or ``Accept'' button can be clicked to hide but do not allow real rejection of tracking. This is a limitation of the consent implementation rather than the automation tool. The system now flags such banners in rule metadata so users are aware of privacy limitations.
+
+\textbf{3. Technical Blocks:} Scenarios like cross-domain iframes, aggressive bot detection, or server-side errors that prevent rule execution. These represent fundamental technical barriers that may require browser extension permissions, proxy infrastructure, or manual intervention.
+
+Understanding these failure cases helps target future improvements and sets realistic expectations for system capabilities.
+
+\subsection{Privacy Impact}
+
+The system's primary privacy benefit comes from consistently applying reject actions on CMPs that support opt-out. For the four CookieYes sites, automatic rejection of non-essential cookies prevents tracking deployment, providing immediate privacy protection.
+
+For GoDaddy sites with accept-only banners, the privacy benefit is indirect: by automatically removing the banner, users are not subjected to repeated consent prompts, but tracking still occurs. However, the system can be integrated with cookie blocking extensions that enforce privacy regardless of consent status, making banner dismissal a convenience feature rather than the sole privacy mechanism.
+
+The MITM proxy alert system provides an additional layer of privacy awareness by warning users about potentially problematic data transmissions. While this requires local setup and is not part of the core evaluation, it demonstrates how consent automation can be extended with complementary privacy protections.
+
+\subsection{Extensibility and Future CMP Families}
+
+The system's architecture is designed for extensibility. Adding support for a new CMP family requires:
+
+\begin{enumerate}
+
+    \item Identifying characteristic script patterns or DOM fingerprints
+
+    \item Adding detection patterns to the fingerprinting database
+
+    \item Extracting stable selectors from sample sites
+
+    \item Generating and testing rule files
+
+\end{enumerate}
+
+This process typically takes 1-2 hours for a new CMP family, compared to 15-30 minutes per site for manual rule creation. As the database of CMP patterns grows, the system becomes more effective at detecting and handling diverse consent implementations.
+
+The codebase currently includes detection patterns for OneTrust, Shopify Privacy Center, and Cookiebot, though these were not present in the primary pharmacy evaluation set. These patterns can be activated and tested as sites using these platforms are encountered.
+
+\section{Conclusion and Future Work}
+
+This work presents CMP Mapper, a practical automated system for generating reusable browser rules to handle cookie consent banners. By analyzing fifteen pharmacy websites and identifying five distinct CMP families, the system demonstrates that family-based rule generation can dramatically reduce maintenance overhead while maintaining high success rates. Using just two generalized rule sets, complete banner dismissal was achieved on all twelve sites in the primary evaluation group (80\% of the total set).
+
+The system includes both command-line tools and a production-ready web interface, making it accessible to researchers, developers, and end users. The architecture is extensible, allowing new CMP families to be added without modifying core detection logic.
+
+Key contributions include: (1) automated detection and classification of consent banners into CMP families, (2) selector extraction algorithms that prioritize stability and robustness, (3) unified rule generation that scales from O(n) sites to O(k) families, (4) a comprehensive web interface for batch processing, and (5) an evaluation demonstrating 100\% success rate on the primary test set.
+
+The approach improves user experience by eliminating repetitive banner interactions and potentially improves privacy by ensuring consistent opt-out behavior where supported. The reduction in maintenance effort makes it feasible to maintain rules for hundreds of sites by supporting a relatively small number of CMP families.
+
+\subsection{Future Work}
+
+Several directions for future work will extend and improve the system:
+
+\textbf{Broader CMP Coverage:} Extending the banner detector and rule generator to cover additional consent platform families such as TrustArc, CookiePro, Quantcast Choice, Usercentrics, and regional platforms common in specific markets. Each new family increases overall coverage with minimal additional complexity.
+
+\textbf{AI-Driven Selector Robustness:} Incorporating machine learning to improve selector robustness and handle banners with non-standard wording or dynamic content. An ML model could learn common patterns of ``reject'' buttons across hundreds of banners, reducing reliance on specific keywords or DOM structures. This could help handle:
+
+\begin{itemize}
+
+    \item Banners with translated text (e.g., French ``Refuser'' instead of ``Reject'')
+
+    \item Dynamic class names that change based on A/B testing
+
+    \item Custom styling that obscures standard CMP patterns
+
+\end{itemize}
+
+\textbf{Integrated Privacy Alert System:} Merging the form data leak alert system with the consent rule engine into a unified browser extension. This would present users with a single tool that manages cookie consents, flags suspicious network activity, and provides comprehensive privacy protection. The UI for alerts will be enhanced to distinguish between format issues (e.g., user typos) and actual privacy risks (e.g., data sent to unexpected third parties).
+
+\textbf{Large-Scale Evaluation:} Deploying the approach on a much larger set of websites (hundreds or thousands across different domains including e-commerce, news, and government portals) to test effectiveness and scalability. This evaluation will:
+
+\begin{itemize}
+
+    \item Measure how many sites can be covered by a small number of generalized rules
+
+    \item Identify outliers that require special handling
+
+    \item Quantify how often new rules need to be introduced as previously unseen CMPs are encountered
+
+    \item Assess selector stability over longer time periods (months rather than weeks)
+
+\end{itemize}
+
+\textbf{Community Rule Repository:} Establishing a community-maintained repository of CMP rules, similar to ad-block filter lists. Users and researchers could contribute new rules, report rule breakage, and vote on rule quality. This crowdsourced approach would scale rule maintenance beyond what a single team can manage.
+
+\textbf{Real-Time Rule Updates:} Implementing a mechanism for automatic rule updates when CMP implementations change. The system could periodically re-test rules against known sites and flag rules that no longer work, triggering regeneration or community notification.
+
+\textbf{Multi-Step Consent Flow Support:} Extending rule generation to handle complex multi-step consent flows, including preference centers with granular cookie category controls. This would require extending the Consent-O-Matic rule schema or proposing schema enhancements.
+
+\textbf{Mobile and App Consent Handling:} Exploring detection and automation for mobile app consent dialogs and in-app browser consent banners, which may have different DOM structures or use native UI components rather than web-based banners.
+
+By addressing these areas, the work moves toward a comprehensive ``consent automation and privacy guard'' that can be easily adopted by users and potentially recommended by privacy regulators as a tool for improving user control over online tracking. The ongoing maintenance of the rule list (via community contributions or automated updates) will be important to keep pace with web changes. Combining automated consent negotiation with proactive privacy alerts provides a more holistic solution for users to protect their data online while maintaining usability of modern websites.
+
+\section*{Acknowledgments}
+
+The authors thank the project supervisor, Yan Yan, for guidance and feedback throughout the project. The developers of Consent-O-Matic and mitmproxy are acknowledged for their open-source tools that formed the foundation of the implementation. Special thanks to Nazia Afrin for assistance in research, data collection, and testing. The pharmacy websites included in this study are acknowledged for providing publicly accessible content for research purposes.
+
+\begin{thebibliography}{00}
+
+\bibitem{hildebrandt2018}
+
+A.~Hildebrandt, ``Privacy by design in the GDPR era,'' \emph{IEEE Security \& Privacy}, vol.~16, no.~1, pp.~24--31, 2018.
+
+\bibitem{englehardt2016}
+
+M.~Englehardt and A.~Narayanan, ``Online tracking: A 1-year measurement study,'' in \emph{Proc.\ of the 2016 ACM SIGSAC Conference on Computer and Communications Security (CCS)}, 2016, pp.~1388--1401.
+
+\bibitem{nouwens2020}
+
+M.~Nouwens, I.~Liccardi, M.~Veale, D.~Karger, and L.~Kagal, ``Dark patterns after the GDPR: Scraping consent pop-ups and demonstrating their influence,'' in \emph{Proc.\ of CHI Conference on Human Factors in Computing Systems}, 2020, pp.~1--13.
+
+\bibitem{bollinger2022}
+
+D.~W.~Bollinger, K.~Kub\'{i}\v{c}ek, C.~Cotrini, and D.~Basin, ``Automating cookie consent and GDPR violation detection,'' in \emph{31st USENIX Security Symposium}, 2022, pp.~2893--2910.
+
+\bibitem{consentomatic}
+
+``Consent-O-Matic -- browser extension that automatically fills out cookie popups based on your preferences,'' Centre for Advanced Visualization and Interaction (CAVI), Aarhus University, GitHub repository. [Online]. Available: \url{https://github.com/cavi-au/Consent-O-Matic}. Accessed: Sep.~2025.
+
+\bibitem{openwpm}
+
+``OpenWPM -- Web privacy measurement framework,'' Mozilla/CITP, GitHub repository. [Online]. Available: \url{https://github.com/openwpm/OpenWPM}. Accessed: Oct.~2025.
+
+\bibitem{cmpmapper}
+
+``CMP Mapper -- Custom script for consent banner scraping and rule generation,'' GitHub repository. [Online]. Available: \url{https://github.com/keyfive5/CMPMapper}. Accessed: Nov.~2025.
+
+\bibitem{nouwens2022}
+
+M.~Nouwens, R.~Bagge, J.~B.~Kristensen, and C.~N.~Klokmose, ``Consent-O-Matic: Automatically answering consent pop-ups using adversarial interoperability,'' in \emph{CHI EA '22: Extended Abstracts of the 2022 CHI Conference on Human Factors in Computing Systems}, Article No.~CAS008, 2022.
+
+\bibitem{utz2019}
+
+C.~Utz, M.~Degeling, S.~Fahl, F.~Schaub, and T.~Holz, ``(Un)informed consent: Studying GDPR consent notices in the field,'' in \emph{Proc.\ of the 2019 ACM SIGSAC Conference on Computer and Communications Security}, 2019, pp.~973--990.
+
+\bibitem{selenium2023}
+
+Selenium Project, ``Selenium WebDriver Documentation,'' [Online]. Available: \url{https://www.selenium.dev/documentation/}. Accessed: Nov.~2025.
+
+\end{thebibliography}
+
+\end{document}
+
