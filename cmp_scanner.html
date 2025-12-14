@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMP Rule Generator - Client-Side</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+        
+        .json-output {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .json-output h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .results-table {
+            margin-top: 30px;
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .results-table th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .results-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .results-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .status-success {
+            color: #28a745;
+            font-weight: 600;
+            font-size: 1.2em;
+        }
+        
+        .status-fail {
+            color: #dc3545;
+            font-weight: 600;
+            font-size: 1.2em;
+        }
+        
+        .quick-links {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+        
+        .quick-links h3 {
+            margin-bottom: 15px;
+            color: #495057;
+        }
+        
+        .quick-link {
+            display: inline-block;
+            padding: 8px 16px;
+            margin: 5px;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            color: #495057;
+            transition: all 0.2s;
+        }
+        
+        .quick-link:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍪 CMP Rule Generator</h1>
+        <p class="subtitle">Generate Consent O Matic rules directly in your browser</p>
+        
+        <div class="input-group">
+            <label for="url">Website URL</label>
+            <input type="text" id="url" placeholder="https://www.example.com" value="">
+        </div>
+        
+        <button class="btn" onclick="runScan()">🔍 Run Scan</button>
+        
+        <div class="loading" id="loading">Analyzing website...</div>
+        
+        <div id="json-output" class="json-output" style="display: none;">
+            <h3>Generated Rule (JSON)</h3>
+            <pre id="json-content"></pre>
+            <button class="btn btn-success" onclick="copyToClipboard()">📋 Load into Consent-O-Matic</button>
+        </div>
+        
+        <table class="results-table" id="results-table" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Website</th>
+                    <th>CMP Family</th>
+                    <th>Rule Generated</th>
+                    <th>Test Result</th>
+                </tr>
+            </thead>
+            <tbody id="results-body">
+            </tbody>
+        </table>
+        
+        <div class="quick-links">
+            <h3>Quick Test Links</h3>
+            <a href="#" class="quick-link" onclick="loadUrl('https://pendalepharmacy.ca/'); return false;">Pendale Pharmacy</a>
+            <a href="#" class="quick-link" onclick="loadUrl('https://northmedafixcompoundingpharmacy.ca/'); return false;">North Medafix</a>
+            <a href="#" class="quick-link" onclick="loadUrl('https://centerpharm.ca/'); return false;">CenterPharm</a>
+            <a href="#" class="quick-link" onclick="loadUrl('https://eramosapharmacy.ca/'); return false;">Eramosa Pharmacy</a>
+            <a href="#" class="quick-link" onclick="loadUrl('https://www.margispharmacy.com/'); return false;">Margis Pharmacy</a>
+        </div>
+    </div>
+    
+    <script>
+        let currentRule = null;
+        let scanResults = [];
+        
+        function loadUrl(url) {
+            document.getElementById('url').value = url;
+        }
+        
+        async function runScan() {
+            const url = document.getElementById('url').value.trim();
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+            
+            const loading = document.getElementById('loading');
+            const jsonOutput = document.getElementById('json-output');
+            const jsonContent = document.getElementById('json-content');
+            
+            loading.style.display = 'block';
+            jsonOutput.style.display = 'none';
+            
+            try {
+                // Use CORS proxy to fetch HTML
+                const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+                const response = await fetch(proxyUrl);
+                const data = await response.json();
+                
+                if (!data.contents) {
+                    throw new Error('Failed to fetch website content');
+                }
+                
+                const html = data.contents;
+                
+                // Parse HTML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Detect CMP and generate rule
+                const result = detectCMPAndGenerateRule(doc, url);
+                
+                if (result.rule) {
+                    currentRule = result.rule;
+                    jsonContent.textContent = JSON.stringify(result.rule, null, 2);
+                    jsonOutput.style.display = 'block';
+                    
+                    // Test the rule
+                    const testResult = testRule(doc, result.rule);
+                    
+                    // Add to results table
+                    addToResultsTable(url, result.cmpFamily, result.rule, testResult);
+                } else {
+                    alert('No consent banner detected on this website.');
+                }
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+                console.error(error);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+        
+        function detectCMPAndGenerateRule(doc, url) {
+            // Simple CMP detection based on common patterns
+            let cmpFamily = 'Unknown';
+            let containerSelector = null;
+            let acceptButtonSelector = null;
+            
+            // Check for GoDaddy
+            const godaddyBanner = doc.querySelector('[id*="cookie"], [class*="cookie"], [id*="consent"], [class*="consent"]');
+            if (godaddyBanner) {
+                const acceptBtn = godaddyBanner.querySelector('button[id*="accept"], button[class*="accept"], a[id*="accept"], a[class*="accept"]');
+                if (acceptBtn) {
+                    cmpFamily = 'GoDaddy Website Builder';
+                    containerSelector = getStableSelector(godaddyBanner);
+                    acceptButtonSelector = getStableSelector(acceptBtn);
+                }
+            }
+            
+            // Check for CookieYes
+            const cookieYesScript = Array.from(doc.querySelectorAll('script')).find(s => 
+                s.src && s.src.includes('cookieyes') || s.textContent.includes('cookieyes')
+            );
+            if (cookieYesScript) {
+                cmpFamily = 'CookieYes';
+                const banner = doc.querySelector('#cookieyes, [id*="cookieyes"], [class*="cookieyes"]');
+                if (banner) {
+                    containerSelector = getStableSelector(banner);
+                    const acceptBtn = banner.querySelector('button, a');
+                    if (acceptBtn) {
+                        acceptButtonSelector = getStableSelector(acceptBtn);
+                    }
+                }
+            }
+            
+            // Check for OneTrust
+            const oneTrustScript = Array.from(doc.querySelectorAll('script')).find(s => 
+                s.src && s.src.includes('onetrust') || s.textContent.includes('OneTrust')
+            );
+            if (oneTrustScript) {
+                cmpFamily = 'OneTrust';
+                const banner = doc.querySelector('#onetrust-consent-sdk, [id*="onetrust"]');
+                if (banner) {
+                    containerSelector = getStableSelector(banner);
+                    const acceptBtn = banner.querySelector('#accept-recommended-btn-handler, button[class*="accept"]');
+                    if (acceptBtn) {
+                        acceptButtonSelector = getStableSelector(acceptBtn);
+                    }
+                }
+            }
+            
+            // Check for Cookiebot
+            const cookiebotScript = Array.from(doc.querySelectorAll('script')).find(s => 
+                s.src && s.src.includes('cookiebot') || s.textContent.includes('Cookiebot')
+            );
+            if (cookiebotScript) {
+                cmpFamily = 'Cookiebot';
+                const banner = doc.querySelector('#CybotCookiebotDialog, [id*="cookiebot"]');
+                if (banner) {
+                    containerSelector = getStableSelector(banner);
+                    const acceptBtn = banner.querySelector('#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll, button[id*="accept"]');
+                    if (acceptBtn) {
+                        acceptButtonSelector = getStableSelector(acceptBtn);
+                    }
+                }
+            }
+            
+            // Generic fallback - look for common cookie banner patterns
+            if (!containerSelector) {
+                const commonBanners = doc.querySelectorAll('[id*="cookie"], [class*="cookie"], [id*="consent"], [class*="consent"], [id*="gdpr"], [class*="gdpr"]');
+                for (let banner of commonBanners) {
+                    const text = banner.textContent.toLowerCase();
+                    if (text.includes('cookie') || text.includes('consent') || text.includes('accept')) {
+                        containerSelector = getStableSelector(banner);
+                        const buttons = banner.querySelectorAll('button, a');
+                        for (let btn of buttons) {
+                            const btnText = btn.textContent.toLowerCase();
+                            if (btnText.includes('accept') || btnText.includes('agree') || btnText.includes('ok')) {
+                                acceptButtonSelector = getStableSelector(btn);
+                                cmpFamily = 'Custom Generic';
+                                break;
+                            }
+                        }
+                        if (acceptButtonSelector) break;
+                    }
+                }
+            }
+            
+            if (!containerSelector || !acceptButtonSelector) {
+                return { cmpFamily: 'None Detected', rule: null };
+            }
+            
+            // Generate Consent O Matic rule
+            const rule = {
+                "$schema": "https://raw.githubusercontent.com/cavi-au/Consent-O-Matic/master/src/schema/rule.schema.json",
+                "detectors": [
+                    {
+                        "presentMatcher": {
+                            "type": "css",
+                            "selector": containerSelector
+                        },
+                        "showingMatcher": {
+                            "type": "css",
+                            "selector": containerSelector
+                        }
+                    }
+                ],
+                "methods": [
+                    {
+                        "action": "DO_CONSENT",
+                        "selectors": [
+                            {
+                                "type": "css",
+                                "selector": acceptButtonSelector
+                            }
+                        ]
+                    },
+                    {
+                        "action": "HIDE_CMP",
+                        "selectors": [
+                            {
+                                "type": "css",
+                                "selector": containerSelector
+                            }
+                        ]
+                    }
+                ]
+            };
+            
+            return {
+                cmpFamily: cmpFamily,
+                rule: rule
+            };
+        }
+        
+        function getStableSelector(element) {
+            // Try ID first
+            if (element.id) {
+                return '#' + element.id;
+            }
+            
+            // Try class
+            if (element.className && typeof element.className === 'string') {
+                const classes = element.className.trim().split(/\s+/).filter(c => c);
+                if (classes.length > 0) {
+                    return '.' + classes[0];
+                }
+            }
+            
+            // Try data attributes
+            for (let attr of element.attributes) {
+                if (attr.name.startsWith('data-')) {
+                    return '[' + attr.name + '="' + attr.value + '"]';
+                }
+            }
+            
+            // Fallback to tag name
+            return element.tagName.toLowerCase();
+        }
+        
+        function testRule(doc, rule) {
+            // Simple test: check if selectors exist in the DOM
+            try {
+                const containerSelector = rule.detectors[0].presentMatcher.selector;
+                const acceptSelector = rule.methods[0].selectors[0].selector;
+                
+                const container = doc.querySelector(containerSelector);
+                const acceptBtn = doc.querySelector(acceptSelector);
+                
+                if (container && acceptBtn) {
+                    return true;
+                }
+                return false;
+            } catch (e) {
+                return false;
+            }
+        }
+        
+        function addToResultsTable(url, cmpFamily, rule, testResult) {
+            const table = document.getElementById('results-table');
+            const tbody = document.getElementById('results-body');
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><a href="${url}" target="_blank">${url.replace(/^https?:\/\//, '').split('/')[0]}</a></td>
+                <td>${cmpFamily}</td>
+                <td>✅ Generated</td>
+                <td class="${testResult ? 'status-success' : 'status-fail'}">${testResult ? '✅ Pass' : '❌ Fail'}</td>
+            `;
+            
+            tbody.appendChild(row);
+            table.style.display = 'table';
+        }
+        
+        async function copyToClipboard() {
+            if (!currentRule) {
+                alert('No rule to copy. Please run a scan first.');
+                return;
+            }
+            
+            try {
+                const ruleJson = JSON.stringify(currentRule, null, 2);
+                await navigator.clipboard.writeText(ruleJson);
+                alert('✅ Rule copied to clipboard! Paste it into Consent-O-Matic rule editor.');
+            } catch (error) {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = JSON.stringify(currentRule, null, 2);
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('✅ Rule copied to clipboard! Paste it into Consent-O-Matic rule editor.');
+            }
+        }
+    </script>
+</body>
+</html>
+
